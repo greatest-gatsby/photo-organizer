@@ -1,0 +1,23 @@
+﻿<Page x:Class="PhotoOrganizer.Win.DirectoryPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:PhotoOrganizer.Win"
+      mc:Ignorable="d" 
+      d:DesignHeight="450" d:DesignWidth="800"
+      Title="DirectoryPage">
+
+    <Grid>
+        <StackPanel>
+            <WrapPanel>
+                <Label x:Name="RecordName" Content="NAME" FontSize="32"/>
+            </WrapPanel>
+            <WrapPanel>
+                <Label x:Name="RecordPath" Content="PATH"/>
+                <Label Content="Recursive: "/>
+                <Label x:Name="RecordRecursive"/>
+            </WrapPanel>
+        </StackPanel>
+    </Grid>
+</Page>
