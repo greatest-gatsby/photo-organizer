@@ -1,4 +1,5 @@
 ﻿<Window x:Class="PhotoOrganizer.Win.MainWindow"
+        x:Name="MainWinder"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -19,15 +20,16 @@
             </MenuItem>
             <MenuItem Header="_Tools">
                 <MenuItem Header="_Archive"/>
+                <MenuItem Header="_File types"/>
             </MenuItem>
         </Menu>
-        <ScrollViewer HorizontalAlignment="Left" Height="394" Margin="0,25,0,0" VerticalAlignment="Top" Width="160">
+        <ScrollViewer HorizontalAlignment="Left" Height="{Binding ElementName=MainWinder, Path=ActualHeight}" Margin="0,25,0,0" VerticalAlignment="Top" Width="160">
             <TreeView x:Name="Treebar" IsEnabled="True">
                 <TreeViewItem x:Name="Directories" Header="Watch Directories" IsExpanded="True">
                     <TreeViewItem Header="Add new..." Selected="AddNewDirs_Selected" Foreground="#FF003AFF"/>
                 </TreeViewItem>
                 <TreeViewItem x:Name="Filters" Header="Filters">
-                    <TreeViewItem Header="Item1"/>
+                    <TreeViewItem Header="File Types"/>
                     <TreeViewItem Header="Item2"/>
                 </TreeViewItem>
                 <TreeViewItem x:Name="History" Header="History">
@@ -35,7 +37,7 @@
                 </TreeViewItem>
             </TreeView>
         </ScrollViewer>
-        <Canvas x:Name="ItemView" HorizontalAlignment="Left" Height="394" Margin="160,25,0,0" VerticalAlignment="Top" Width="632" Grid.ColumnSpan="2">
+        <Canvas x:Name="ItemView" HorizontalAlignment="Left" Height="{Binding ElementName=LayoutRoot, Path=ActualHeight}" Margin="160,25,0,0" VerticalAlignment="Top" Width="632" Grid.ColumnSpan="2">
         </Canvas>
     </Grid>
 </Window>

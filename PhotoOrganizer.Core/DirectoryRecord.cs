@@ -18,5 +18,13 @@ namespace PhotoOrganizer.Core
         public bool IsRecursive { get; set; }
         public DirectoryMode Mode { get; set; }
 
+        public IEnumerable<string> RetrieveImages()
+        {
+            List<string> ret = new List<string>();
+            
+
+            return ret;
+        }
+
     }
 }

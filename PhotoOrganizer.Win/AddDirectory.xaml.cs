@@ -31,6 +31,11 @@ namespace PhotoOrganizer.Win
             LoadOptions();
         }
 
+        /// <summary>
+        /// Opens a file dialog to select the new directory
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void Browse_Click(object sender, RoutedEventArgs e)
         {
             string dialogmsg = "Select Source Directory";
@@ -43,8 +48,11 @@ namespace PhotoOrganizer.Win
             };
             dialog.ShowDialog();
             Path = dialog.FileName.Remove(dialog.FileName.Length - dialogmsg.Length);
-            PathLbl.Content = Path;
-            Alias.Text = Path.Split('\\')[Path.Split('\\').Length - 2];
+            if (Path != String.Empty)
+            {
+                PathLbl.Content = Path;
+                Alias.Text = Path.Split('\\')[Path.Split('\\').Length - 2];
+            }
         }
 
         /// <summary>
@@ -65,35 +73,10 @@ namespace PhotoOrganizer.Win
                 LastMode = "AUTO";
                 OptionsGroup.Header = "Automatic Options";
                 Options.Children.RemoveRange(0, Options.Children.Count); // clear items to replace them
-
-                // Add browse controls
-                WrapPanel browse = new WrapPanel();
-                Label browselbl = new Label()
-                {
-                    Content = "Select directory: "
-                };
-                Button browsebtn = new Button()
-                {
-                    Content = "Browse",
-                };
-                browsebtn.Click += Browse_Click;
-                browse.Children.Add(browselbl);
-                browse.Children.Add(browsebtn);
-                Options.Children.Add(browse);
-
-                // Include subdirectories controls
-                WrapPanel subdir = new WrapPanel();
-                Label subdirlbl = new Label
-                {
-                    Content = "Include all subdirectories"
-                };
-                CheckBox subdirchk = new CheckBox()
-                {
-                    IsChecked = true
-                };
-                subdir.Children.Add(subdirchk);
-                subdir.Children.Add(subdirlbl);
-                Options.Children.Add(subdir);
+                Label lbl = new Label();
+                lbl.Content = "No options to configure...";
+                lbl.Foreground = new SolidColorBrush(Colors.Gray);
+                Options.Children.Add(lbl);
             }
         }
 

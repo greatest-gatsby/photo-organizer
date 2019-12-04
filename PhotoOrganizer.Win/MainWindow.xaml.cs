@@ -104,11 +104,12 @@ namespace PhotoOrganizer.Win
         {
             if (String.IsNullOrWhiteSpace(StatePath))
             {
-                if (!SetStatePath())
-                    e.Cancel = true;
+                //if (!SetStatePath())
+                //    e.Cancel = true;
             }
             else
-                SaveState();
+                //SaveState();
+                String.IsNullOrEmpty("");
         }
 
         private bool SetStatePath()

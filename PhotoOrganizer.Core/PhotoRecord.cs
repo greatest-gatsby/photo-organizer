@@ -16,7 +16,7 @@ namespace PhotoOrganizer.Core
         /// <summary>
         /// Collection of copies of/derivative images of the photograph
         /// </summary>
-        ObservableCollection<Image>  Images { get; set; }
+        ObservableCollection<ImageRecord>  Images { get; set; }
         #endregion
     }
 
