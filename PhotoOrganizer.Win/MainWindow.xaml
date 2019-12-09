@@ -35,6 +35,12 @@
                 <TreeViewItem x:Name="History" Header="History">
                     <TreeViewItem Header="No history yet..."/>
                 </TreeViewItem>
+                <TreeViewItem x:Name="Destinations" Header="Destinations">
+                    <TreeViewItem Header="Add new..." Selected="AddNewDestination_Click" Foreground="#FF003AFF"/>
+                </TreeViewItem>
+                <TreeViewItem x:Name="Jobs" Header="Jobs">
+                    <TreeViewItem Header="Add new..." Selected="Jobs_Click" Foreground="#FF003AFF"/>
+                </TreeViewItem>
             </TreeView>
         </ScrollViewer>
         <Canvas x:Name="ItemView" HorizontalAlignment="Left" Height="{Binding ElementName=LayoutRoot, Path=ActualHeight}" Margin="160,25,0,0" VerticalAlignment="Top" Width="632" Grid.ColumnSpan="2">

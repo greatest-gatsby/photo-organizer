@@ -79,6 +79,23 @@ namespace PhotoOrganizer.Win
         }
         #endregion
 
+        #region destination
+        public void AddNewDestination_Click(object sender, RoutedEventArgs args)
+        {
+            TreeViewItem itm = (TreeViewItem)sender;
+            Frame frame = new Frame();
+            ItemView.Children.Clear();
+            ItemView.Children.Add(frame);
+        }
+        #endregion
+
+        #region jobs
+        private void Jobs_Click(object sender, RoutedEventArgs args)
+        {
+
+        }
+        #endregion
+
         /// <summary>
         /// Loads state from disk or memory and returns true on success
         /// </summary>

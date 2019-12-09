@@ -68,7 +68,11 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="DirectoryPage.xaml">
+    <Page Include="ViewPanels\DestinationPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="ViewPanels\DirectoryPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -87,7 +91,10 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="DirectoryPage.xaml.cs">
+    <Compile Include="ViewPanels\DestinationPage.xaml.cs">
+      <DependentUpon>DestinationPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="ViewPanels\DirectoryPage.xaml.cs">
       <DependentUpon>DirectoryPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="MainWindow.xaml.cs">
