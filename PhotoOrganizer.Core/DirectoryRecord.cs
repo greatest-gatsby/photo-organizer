@@ -82,12 +82,12 @@ namespace PhotoOrganizer.Core
             DirectoryRecord record = new DirectoryRecord()
             {
                 Type = ParseType(processed[0]),
-                Path = processed[1]
+                Path = processed[1].Trim()
             };
 
             // Parse alias if included
             if (processed.Length == 3)
-                record.Alias = processed[2];
+                record.Alias = processed[2].Trim();
 
             return record;
         }
@@ -108,13 +108,13 @@ namespace PhotoOrganizer.Core
             DirectoryRecord record = new DirectoryRecord()
             {
                 Type = DirectoryRecord.ParseType(input[0]),
-                Path = input[1]
+                Path = input[1].Trim()
             };
 
             if (input.Length > 3)
                 throw new FormatException("Expected 2 or 3 arguments, got " + input.Length);
             else if (input.Length == 3)
-                record.Alias = input[2];
+                record.Alias = input[2].Trim();
 
             return record;
         }

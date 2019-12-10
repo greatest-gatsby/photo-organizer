@@ -182,7 +182,7 @@ namespace PhotoOrganizer
                 }
                 lineNumber++;
 
-
+                // See if this rec we are looking at matches the query given by the user
                 if (args[1] == rec.Path || (!String.IsNullOrEmpty(args[1]) && args[1] == rec.Alias))
                 {
                     // Do not write back to file

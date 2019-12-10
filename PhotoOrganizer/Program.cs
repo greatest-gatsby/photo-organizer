@@ -4,9 +4,9 @@ using PhotoOrganizer.Core;
 
 namespace PhotoOrganizer
 {
-    class Program
+    public class Program
     {
-        static int Main(string[] args)
+        public static int Main(string[] args)
         {
             // Handle empty args
             if (args.Length == 0)
