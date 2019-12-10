@@ -1,0 +1,13 @@
+Year->Month->*
+2018
+   Mar
+      IMG_20.jpg
+   Apr
+      IMG_25.jpg
+
+
+Year-Month->*
+2018-03 Mar
+   IMG_20.jpg
+2018-04 Apr
+   IMG_25.jpg

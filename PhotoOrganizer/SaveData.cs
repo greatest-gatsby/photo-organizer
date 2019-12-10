@@ -6,6 +6,8 @@ using System.Globalization;
 using System.Xml.Linq;
 using System.Linq;
 
+using PhotoOrganizer.Core;
+
 namespace PhotoOrganizer
 {
     public static class SaveData
@@ -20,10 +22,14 @@ namespace PhotoOrganizer
         /// </summary>
         public static string ConfigName { get; set; } = "organizer_data.xml";
 
+        public static string DirectoriesFileName { get { return "directories"; } }
+
+        public static string DirectoriesFilePath { get { return Path.Combine(DataDirectory, DirectoriesFileName); } }
+
         /// <summary>
         /// Returns the path to the in-use config file
         /// </summary>
-        public static string ConfigPath { get { return Path.Combine(DataDirectory, ConfigName); } }
+        public static string ConfigPath { get { return Path.Combine(DataDirectory, DirectoriesFileName); } }
         
         static SaveData()
         {
@@ -32,7 +38,7 @@ namespace PhotoOrganizer
                 "photo organizer" + Path.DirectorySeparatorChar);
 
             // Determine where the save data is -- either application data or current directory
-            if (File.Exists(Path.Combine(appResourcePath, ConfigName)))
+            if (File.Exists(Path.Combine(appResourcePath, DirectoriesFileName)))
             {
                 DataDirectory = appResourcePath;
             }
@@ -41,16 +47,17 @@ namespace PhotoOrganizer
                 // Try to create data directory in appdata folder
                 try
                 {
-                    Directory.CreateDirectory(appResourcePath);
-                    // Now try to write the config base
-                    File.WriteAllText(Path.Combine(appResourcePath, "organizer_data.xml"), BaseConfig);
+                    if (!Directory.Exists(appResourcePath))
+                        Directory.CreateDirectory(appResourcePath);
+                    // Now try to write the directories file
+                    File.WriteAllText(Path.Combine(appResourcePath, DirectoriesFileName), "");
                     DataDirectory = appResourcePath;
                     Console.WriteLine("Created config at " + ConfigPath);
                 }
                 catch (Exception ex)
                 {
                     // Use current directory instead
-                    File.WriteAllText(Path.Combine(Environment.CurrentDirectory, "organizer_data.xml"), BaseConfig);
+                    File.WriteAllText(Path.Combine(Environment.CurrentDirectory, DirectoriesFileName), "");
                     DataDirectory = Environment.CurrentDirectory;
                     Console.WriteLine("Created config at " + ConfigPath);
                 }
@@ -58,26 +65,85 @@ namespace PhotoOrganizer
         }
 
         /// <summary>
-        /// Adds the XElement as a new child of the node named by <paramref name="category"/>
+        /// Adds the given record to the Directories file
         /// </summary>
         /// <param name="category">Category of data to append</param>
         /// <param name="element">XElement to insert in file</param>
-        public static bool AddSource(string category, XElement element)
+        public static bool AddDirectory(DirectoryRecord record)
         {
-            XElement config = XDocument.Load(ConfigPath).Element("data");
-            
-            var set = config.Descendants().Where(d => d.Value == element.Element("path").Value);
-            if (set.Any())
+            // Check for duplicates
+            if (File.Exists(DirectoriesFilePath))
             {
-                Console.WriteLine("SOURCE already saved");
-                return false;
+                foreach (string line in File.ReadAllLines(DirectoriesFilePath))
+                {
+                    DirectoryRecord found;
+                    if (DirectoryRecord.TryParse(line, out found) && found.Path == record.Path)
+                    {
+                        return false;
+                    }
+                }
             }
-            else
+
+            // Write it
+            try
             {
-                config.Element(category).Add(element);
-                config.Save(ConfigPath);
+                File.AppendAllText(DirectoriesFilePath, record.ToString());
                 return true;
             }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Removes a saved place by name or path
+        /// </summary>
+        /// <param name="args">CLI args containing the path or name</param>
+        /// <returns></returns>
+        public static bool RemoveSource(string[] args)
+        {
+            bool foundDirectory = false;
+            // Exit on obvious errors, such as unexpected arguments
+            if (args.Length != 2)
+            {
+                return false;
+            }
+
+            // Look for it
+            StreamReader reader = File.OpenText(SaveData.DirectoriesFilePath);
+            string newContents = String.Empty;
+            int lineNumber = 1;
+            while (!reader.EndOfStream)
+            {
+                DirectoryRecord rec = null;
+                if (!DirectoryRecord.TryParse(reader.ReadLine(), out rec))
+                {
+                    Console.WriteLine("Failed to parse directory on line {0}", lineNumber);
+                    lineNumber++;
+                    continue;
+                }
+                lineNumber++;
+
+
+                if (args[1] == rec.Path || args[1] == rec.Alias)
+                {
+                    // Do not write this back to file!
+                    foundDirectory = true;
+                }
+                else
+                    newContents += rec.ToString();
+            }
+            reader.Close();
+
+            File.WriteAllText(SaveData.DirectoriesFilePath, newContents);
+
+            return foundDirectory;
+        }
+
+        public static bool Move()
+        {
+            return true;
         }
 
         /// <summary>
@@ -86,32 +152,19 @@ namespace PhotoOrganizer
         /// <param name="scope">One of ALL, SOURCE, or TARGET</param>
         public static void ListDirectories(string scope = "all")
         {
-            List<XElement> dirs = new List<XElement>();
-            XElement config = XDocument.Load(ConfigPath).Root;
-            scope = scope.ToLower();
-
-            // Read elements from config
-            if (scope == "all" || scope == "source")
+            StreamReader reader = File.OpenText(SaveData.DirectoriesFilePath);
+            while (!reader.EndOfStream)
             {
-                dirs.AddRange(config.Element("sources").Elements());
-            }
-            if (scope == "target" || scope == "all")
-            {
-                dirs.AddRange(config.Element("targets").Elements());
-            }
-            
-            // Handle empty config
-            if (scope != "target" && scope != "source" && scope != "all")
-            {
-                Console.WriteLine("Unrecognized argument '{0}'", scope);
-                return;
-            }
-            else
-            {
-                Console.WriteLine("NAME\t\tPATH\t\tTYPE");
-                foreach (XElement ele in dirs)
+                DirectoryRecord rec;
+                if (!DirectoryRecord.TryParse(reader.ReadLine(), out rec))
                 {
-                    Console.WriteLine(ele.Element("name").Value + "\t" + ele.Element("path").Value + "\t" + ele.Name);
+                    continue; // skip failed parse lines
+                }
+                if ((scope.ToLower() == "source" && rec.Type == DirectoryType.Source) ||
+                    (scope.ToLower() == "target" && rec.Type == DirectoryType.Target) ||
+                    scope.ToLower() == "all")
+                {
+                    Console.WriteLine(rec.Type.ToString("g") + "\t" + rec.Path + "\t" + rec.Alias);
                 }
             }
         }

@@ -15,7 +15,7 @@ namespace PhotoOrganizer
                 return 1;
             }
 
-            // Extract, then remove, application-wide options like --config
+            // Extract and remove application-wide options like --config
             args = ParseApplicationArguments(args);
             if (args == null)
                 return 1;
@@ -27,9 +27,13 @@ namespace PhotoOrganizer
                     AddDirectory(args);
                     break;
                 case "move":
+                    SaveData.Move();
                     break;
                 case "list":
                     ListDirectories(args);
+                    break;
+                case "remove":
+                    SaveData.RemoveSource(args);
                     break;
                 default:
                     PrintUsage();
@@ -46,13 +50,16 @@ namespace PhotoOrganizer
         static void PrintUsage()
         {
             // ADD usage
-            Console.WriteLine("add <source | target> $location [$name]");
+            Console.WriteLine("add <source | target> $path [$name]");
 
             // MOVE usage
             Console.WriteLine("move <source | target> $name");
 
             // LIST usage
             Console.WriteLine("list [source | target]");
+
+            // REMOVE usage
+            Console.WriteLine("remove <$name | $path>");
 
             Console.WriteLine("");
         }
@@ -148,12 +155,21 @@ namespace PhotoOrganizer
             {
                 Alias = name,
                 IsRecursive = true,
-                Mode = DirectoryMode.Auto,
                 Path = location
             };
 
+            if (args[1].ToLower() == "source")
+                rec.Type = DirectoryType.Source;
+            else if (args[1].ToLower() == "target")
+                rec.Type = DirectoryType.Target;
+            else
+            {
+                Console.WriteLine("Unrecognized option {0}", args[1]);
+                return;
+            }
+
             // Save, and see if it isn't a duplicate
-            if (SaveData.AddSource(args[1].ToLower() + 's', rec.ToXml(args[1].ToLower())))
+            if (SaveData.AddDirectory(rec))
                 Console.WriteLine("Added " + dirType + " " + location);
             else
                 Console.WriteLine("Already had '" + rec.Path + "'");
@@ -167,7 +183,7 @@ namespace PhotoOrganizer
         {
             if (args.Length > 2)
             {
-                Console.WriteLine("Only expected 2 arguments");
+                Console.WriteLine("Expected 1 or 2 arguments, got {0}", args.Length);
             }
             else if (args.Length == 2)
             {
