@@ -10,6 +10,63 @@ using PhotoOrganizer.Core;
 
 namespace PhotoOrganizer
 {
+    /// <summary>
+    /// Utility class useful for giving descriptive, non-throwing reports on operation status.
+    /// </summary>
+    public class Result
+    {
+        /// <summary>
+        /// The message explaing the error. If the operation succeeded, then this returns String.Empty()
+        /// </summary>
+        public string Message { get; }
+
+        /// <summary>
+        /// Returns true if the operation succeeded, else false.
+        /// </summary>
+        public bool Successful { get; }
+
+        /// <summary>
+        /// Creates a FAILING result with the given message
+        /// </summary>
+        /// <param name="message">Message to explain failure</param>
+        /// <param name="args">Optional array of objects to use when formatting the string.</param>
+        private Result(string message, params object[] args)
+        {
+            Message = String.Format(message, args);
+            Successful = false;
+        }
+
+        /// <summary>
+        /// Creates a PASSING result 
+        /// </summary>
+        private Result()
+        {
+            Message = String.Empty;
+            Successful = true;
+        }
+
+        /// <summary>
+        /// Returns a Result indicating SUCCESS
+        /// </summary>
+        public static Result Success() { 
+            {
+                return new Result();
+            }
+        }
+
+        /// <summary>
+        /// Returns a Result indicating FAILURE with the given message
+        /// </summary>
+        /// <param name="message">The message to explain the failure</param>
+        /// <param name="args">Optional array of objects to use when formatting the string.</param>
+        /// <returns>A result indicating FAILURE with the given message</returns>
+        public static Result Failure(string message, params object[] args) { 
+            {
+                return new Result(message, args);
+            }
+        }
+    }
+
     public static class SaveData
     {
         /// <summary>
@@ -69,7 +126,7 @@ namespace PhotoOrganizer
         /// </summary>
         /// <param name="category">Category of data to append</param>
         /// <param name="element">XElement to insert in file</param>
-        public static bool AddDirectory(DirectoryRecord record)
+        public static Result AddDirectory(DirectoryRecord record)
         {
             // Check for duplicates
             if (File.Exists(DirectoriesFilePath))
@@ -79,7 +136,7 @@ namespace PhotoOrganizer
                     DirectoryRecord found;
                     if (DirectoryRecord.TryParse(line, out found) && found.Path == record.Path)
                     {
-                        return false;
+                        return Result.Failure("Already have a record for {0}", found.Identifier);
                     }
                 }
             }
@@ -88,11 +145,11 @@ namespace PhotoOrganizer
             try
             {
                 File.AppendAllText(DirectoriesFilePath, record.ToString());
-                return true;
+                return Result.Success();
             }
             catch
             {
-                return false;
+                return Result.Failure("Error occured during file write");
             }
         }
 
@@ -101,13 +158,13 @@ namespace PhotoOrganizer
         /// </summary>
         /// <param name="args">CLI args containing the path or name</param>
         /// <returns></returns>
-        public static bool RemoveSource(string[] args)
+        public static Result RemoveDirectory(string[] args)
         {
-            bool foundDirectory = false;
+            bool found = false;
             // Exit on obvious errors, such as unexpected arguments
             if (args.Length != 2)
             {
-                return false;
+                return Result.Failure("Expected 2 arguments, got {0}", args.Length);
             }
 
             // Look for it
@@ -126,33 +183,55 @@ namespace PhotoOrganizer
                 lineNumber++;
 
 
-                if (args[1] == rec.Path || args[1] == rec.Alias)
+                if (args[1] == rec.Path || (!String.IsNullOrEmpty(args[1]) && args[1] == rec.Alias))
                 {
-                    // Do not write this back to file!
-                    foundDirectory = true;
+                    // Do not write back to file
+                    found = true;
                 }
                 else
                     newContents += rec.ToString();
             }
             reader.Close();
 
-            File.WriteAllText(SaveData.DirectoriesFilePath, newContents);
-
-            return foundDirectory;
+            // If found, then write the modified file
+            if (found)
+            {
+                File.WriteAllText(SaveData.DirectoriesFilePath, newContents);
+                return Result.Success();
+            }
+            // Otherwise don't bother rewriting the same contents
+            else
+            {
+                return Result.Failure("No saved directory named '{0}'", args[1]);
+            }
         }
 
-        public static bool Move()
+        public static Result Move()
         {
-            return true;
+            return Result.Success();
         }
 
         /// <summary>
         /// Lists directories of the given type. If an invalid type is given, no message or error is given.
         /// </summary>
         /// <param name="scope">One of ALL, SOURCE, or TARGET</param>
-        public static void ListDirectories(string scope = "all")
+        public static Result ListDirectories(string scope = "all")
         {
             StreamReader reader = File.OpenText(SaveData.DirectoriesFilePath);
+            bool parseAll = (scope == "all") ? true : false;
+            
+            // This lets us reuse that same message thrown by the parsing method
+            DirectoryType type = DirectoryType.Source;
+            try
+            {
+                if (!parseAll)
+                    type = DirectoryRecord.ParseType(scope);
+            }
+            catch (Exception ex)
+            {
+                return Result.Failure(ex.Message);
+            }
+            
             while (!reader.EndOfStream)
             {
                 DirectoryRecord rec;
@@ -160,17 +239,14 @@ namespace PhotoOrganizer
                 {
                     continue; // skip failed parse lines
                 }
-                if ((scope.ToLower() == "source" && rec.Type == DirectoryType.Source) ||
-                    (scope.ToLower() == "target" && rec.Type == DirectoryType.Target) ||
-                    scope.ToLower() == "all")
+                if ( parseAll || type == rec.Type )
                 {
                     Console.WriteLine(rec.Type.ToString("g") + "\t" + rec.Path + "\t" + rec.Alias);
                 }
             }
-        }
+            reader.Close();
 
-        static readonly string BaseConfig = @"<?xml version=""1.0"" encoding=""utf-8"" ?>" + Environment.NewLine
-            + "<data>" + Environment.NewLine + "\t<sources>" + Environment.NewLine + "</sources>" + Environment.NewLine
-            + "\t<targets>" + Environment.NewLine + "</targets>" + Environment.NewLine + "</data>";
+            return Result.Success();
+        }
     }
 }

@@ -33,7 +33,7 @@ namespace PhotoOrganizer
                     ListDirectories(args);
                     break;
                 case "remove":
-                    SaveData.RemoveSource(args);
+                    RemoveDirectory(args);
                     break;
                 default:
                     PrintUsage();
@@ -102,100 +102,106 @@ namespace PhotoOrganizer
         /// Adds another directory to the watchlist
         /// </summary>
         /// <param name="args">CLI arguments used to invoke the program</param>
-        static void AddDirectory(string[] args)
+        static int AddDirectory(string[] args)
         {
-            string location, name, dirType;
-
-            // reject wrong argument count
-            if (args.Length > 4)
+            // Verify array size
+            if (args.Length < 3 || args.Length > 4)
             {
-                Console.WriteLine("Found unknown arguments-- expected 4 or fewer, got " + args.Length);
-                return;
-            }
-            else if (args.Length < 2)
-            {
-                Console.WriteLine("Missing expected arguments");
-                return;
+                Console.WriteLine("Expected 3 or 4 arguments, got {0}", args.Length);
             }
 
-            // Set variables to default, config, or CLI values
-            if (args[1].ToLower() == "source" || args[1].ToLower() == "target")
-            {
-                location = args[2];
-                dirType = args[1].ToUpper();
+            // Now, assumes the following input structure
+            // <source | target> $path [$alias]
 
-                // Set name to last term in location unless custom name provided
-                if (args.Length == 4)
-                    name = args[3];
-                else
-                {
-                    name = args[2].Substring(args[2].LastIndexOf(Path.DirectorySeparatorChar));
-                    name = name.Replace(Path.DirectorySeparatorChar.ToString(), "");
-                    if (String.IsNullOrWhiteSpace(name))
-                    {
-                        name = args[2].Substring(args[2].LastIndexOf(Path.DirectorySeparatorChar));
-                    }
-                }
-            }
-            else
+            // Verify type
+            DirectoryType type;
+            if (!DirectoryRecord.TryParseType(args[1], out type))
             {
-                Console.WriteLine("Directory not declared SOURCE or TARGET");
-                return;
+                Console.WriteLine("Unknown directory type {0}", args[1]);
             }
 
-            // Verify path exists
-            if (!Directory.Exists(location))
+            // Create record
+            DirectoryRecord record = new DirectoryRecord()
             {
-                Console.WriteLine("Directory '" + location + "' not found");
-                return;
-            }
-
-            // Valid. Add it!
-            DirectoryRecord rec = new DirectoryRecord()
-            {
-                Alias = name,
-                IsRecursive = true,
-                Path = location
+                Type = type,
+                Path = args[2]
             };
-
-            if (args[1].ToLower() == "source")
-                rec.Type = DirectoryType.Source;
-            else if (args[1].ToLower() == "target")
-                rec.Type = DirectoryType.Target;
-            else
+            
+            // Add alias if included
+            if (args.Length == 4)
             {
-                Console.WriteLine("Unrecognized option {0}", args[1]);
-                return;
+                record.Alias = args[3];
             }
 
-            // Save, and see if it isn't a duplicate
-            if (SaveData.AddDirectory(rec))
-                Console.WriteLine("Added " + dirType + " " + location);
+            // Attempt to save
+            var result = SaveData.AddDirectory(record);
+            if (result.Successful)
+            {
+                return 0;
+            }
             else
-                Console.WriteLine("Already had '" + rec.Path + "'");
+            {
+                Console.WriteLine(result.Message + "TAG");
+                return 1;
+            }
+            
         }
 
         /// <summary>
         /// Prints all the directories in a nice format
         /// </summary>
         /// <param name="args"></param>
-        static void ListDirectories(string[] args)
+        static int ListDirectories(string[] args)
         {
+            // Reject too many arguments
             if (args.Length > 2)
             {
                 Console.WriteLine("Expected 1 or 2 arguments, got {0}", args.Length);
+                return 1;
             }
+            // Certain type listings
             else if (args.Length == 2)
             {
-                if (args[1].ToLower() == "source" || args[1].ToLower() == "target")
-                    SaveData.ListDirectories(args[1]);
+                // List only those of a certain type
+                var result = SaveData.ListDirectories(args[1]);
+                if (result.Successful)
+                {
+                    return 0;
+                }
                 else
-                    Console.WriteLine("Unknown option " + args[1]);
+                {
+                    Console.WriteLine(result.Message);
+                    return 1;
+                }
+            }
+            // All types listing
+            else
+            {
+                var result = SaveData.ListDirectories();
+                if (result.Successful)
+                {
+                    return 0;
+                }
+                else
+                {
+                    Console.WriteLine(result.Message);
+                    return 1;
+                }
+            }
+        }
+
+        static int RemoveDirectory(string[] args)
+        {
+            var result = SaveData.RemoveDirectory(args);
+            if (result.Successful)
+            {
+                return 0;
             }
             else
-                SaveData.ListDirectories();
-            
-                    //SaveData.DataDirectory
+            {
+                Console.WriteLine(result.Message);
+                return 1;
+            }
         }
     }
 }
