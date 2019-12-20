@@ -175,7 +175,7 @@ namespace PhotoOrganizer.Core
                 return DirectoryType.Target;
             }
             else
-                throw new FormatException("Unrecognized type " + input);
+                throw new FormatException(DirectoryRecord.WrongType(input));
         }
 
         /// <summary>
@@ -196,6 +196,16 @@ namespace PhotoOrganizer.Core
                 type = DirectoryType.Source;
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Prints a standardized message for incorrect type arguments
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        public static string WrongType(string type)
+        {
+            return "Unknown directory type " + type;
         }
     }
 

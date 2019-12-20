@@ -20,8 +20,10 @@ namespace PhotoOrganizer
             if (args == null)
                 return 1;
 
+            string command = ConsumeFirst(ref args);
+
             // Read command
-            switch (args[0].ToLower())
+            switch (command)
             {
                 case "add":
                     AddDirectory(args);
@@ -35,6 +37,9 @@ namespace PhotoOrganizer
                 case "remove":
                     RemoveDirectory(args);
                     break;
+                case "scheme":
+
+                    break;
                 default:
                     PrintUsage();
                     return 1;
@@ -45,10 +50,24 @@ namespace PhotoOrganizer
         }
 
         /// <summary>
+        /// Removes and returns the first item in the array, and modifies the args array IN PLACE
+        /// </summary>
+        /// <param name="args">CLI args to work with. The first ([0]) will be consumed.</param>
+        /// <returns>The value at args[0]. The array will also be modified now.</returns>
+        public static string ConsumeFirst(ref string[] args)
+        {
+            string val = args[0];
+            Array.Copy(args, 1, args, 0, args.Length - 1);
+            Array.Resize<string>(ref args, args.Length - 1);
+            return val;
+        }
+
+        /// <summary>
         /// Prints CLI usage information
         /// </summary>
         static void PrintUsage()
         {
+            // Directories/typical usage
             // ADD usage
             Console.WriteLine("add <source | target> $path [$name]");
 
@@ -61,7 +80,15 @@ namespace PhotoOrganizer
             // REMOVE usage
             Console.WriteLine("remove <$name | $path>");
 
-            Console.WriteLine("");
+            // Scheme management
+            Console.WriteLine("{0}TARGET SCHEMES", Environment.NewLine);
+
+            Console.WriteLine("scheme add $format [$name] [description]");
+
+            Console.WriteLine("scheme list");
+
+            Console.WriteLine("scheme remove <$format | $name>");
+
         }
 
         /// <summary>
@@ -104,33 +131,40 @@ namespace PhotoOrganizer
         /// <param name="args">CLI arguments used to invoke the program</param>
         static int AddDirectory(string[] args)
         {
-            // Verify array size
-            if (args.Length < 3 || args.Length > 4)
-            {
-                Console.WriteLine("Expected 3 or 4 arguments, got {0}", args.Length);
-            }
+            // After command is consumed, expecting:
+            // <source | target> $path [$name]
 
-            // Now, assumes the following input structure
-            // <source | target> $path [$alias]
+            // Verify array size
+            if (args.Length < 2)
+            {
+                Console.WriteLine("Expected 2 or 3 arguments after 'add', got {0}--did you specify directory type?", args.Length);
+                return 1;
+            }
+            else if (args.Length > 3)
+            {
+                Console.WriteLine("Expected 2 or 3 arguments after 'add', got {0}", args.Length);
+                return 1;
+            }
 
             // Verify type
             DirectoryType type;
-            if (!DirectoryRecord.TryParseType(args[1], out type))
+            if (!DirectoryRecord.TryParseType(args[0], out type))
             {
-                Console.WriteLine("Unknown directory type {0}", args[1]);
+                Console.WriteLine(DirectoryRecord.WrongType(args[0]));
+                return 1;
             }
 
             // Create record
             DirectoryRecord record = new DirectoryRecord()
             {
                 Type = type,
-                Path = args[2]
+                Path = args[1]
             };
             
             // Add alias if included
-            if (args.Length == 4)
+            if (args.Length == 3)
             {
-                record.Alias = args[3];
+                record.Alias = args[2];
             }
 
             // Attempt to save
@@ -153,17 +187,20 @@ namespace PhotoOrganizer
         /// <param name="args"></param>
         static int ListDirectories(string[] args)
         {
+            // After command is consumed, expecting:
+            // [source | target]
+
             // Reject too many arguments
-            if (args.Length > 2)
+            if (args.Length > 1)
             {
-                Console.WriteLine("Expected 1 or 2 arguments, got {0}", args.Length);
+                Console.WriteLine("Expected 1 optional argument after 'list', got {0}", args.Length);
                 return 1;
             }
             // Certain type listings
-            else if (args.Length == 2)
+            else if (args.Length == 1)
             {
                 // List only those of a certain type
-                var result = SaveData.ListDirectories(args[1]);
+                var result = SaveData.ListDirectories(args[0]);
                 if (result.Successful)
                 {
                     return 0;
@@ -190,9 +227,17 @@ namespace PhotoOrganizer
             }
         }
 
+        /// <summary>
+        /// Removes the given directory from the directories file
+        /// </summary>
+        /// <param name="args">CLI args</param>
+        /// <returns>Status code program should echo before exiting</returns>
         static int RemoveDirectory(string[] args)
         {
-            var result = SaveData.RemoveDirectory(args);
+            // After command is consumed, expecting:
+            // <$name | $path>
+
+            var result = SaveData.RemoveDirectory(args[0]);
             if (result.Successful)
             {
                 return 0;
@@ -202,6 +247,43 @@ namespace PhotoOrganizer
                 Console.WriteLine(result.Message);
                 return 1;
             }
+        }
+
+        /// <summary>
+        /// Consumes arguments concerning schemes
+        /// </summary>
+        /// <param name="args"></param>
+        /// <returns>Status code program should echo before exiting</returns>
+        static int Schemes(string[] args)
+        {
+            // Reject too few args
+            if (args.Length < 2)
+            {
+                PrintUsage();
+                return 1;
+            }
+
+            switch (args[1])
+            {
+                case "add":
+
+                    break;
+                case "list":
+
+                    break;
+                case "remove":
+
+                    break;
+                default:
+                    PrintUsage();
+                    return 1;
+            }
+            return 0;
+        }
+
+        static int AddScheme(string[] args)
+        {
+            return 0;
         }
     }
 }

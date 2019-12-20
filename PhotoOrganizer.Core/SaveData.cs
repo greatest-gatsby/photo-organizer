@@ -6,9 +6,9 @@ using System.Globalization;
 using System.Xml.Linq;
 using System.Linq;
 
-using PhotoOrganizer.Core;
+using PhotoOrganizer;
 
-namespace PhotoOrganizer
+namespace PhotoOrganizer.Core
 {
     /// <summary>
     /// Utility class useful for giving descriptive, non-throwing reports on operation status.
@@ -74,20 +74,23 @@ namespace PhotoOrganizer
         /// </summary>
         public static string DataDirectory { get; set; }
 
-        /// <summary>
-        /// Name of the config file. Stored within the data directory
-        /// </summary>
-        public static string ConfigName { get; set; } = "organizer_data.xml";
 
         public static string DirectoriesFileName { get { return "directories"; } }
 
         public static string DirectoriesFilePath { get { return Path.Combine(DataDirectory, DirectoriesFileName); } }
+
+        public static string SchemesFileName { get { return "schemes"; } }
+
+        public static string SchemesFilePath { get { return Path.Combine(DataDirectory, SchemesFileName); } }
 
         /// <summary>
         /// Returns the path to the in-use config file
         /// </summary>
         public static string ConfigPath { get { return Path.Combine(DataDirectory, DirectoriesFileName); } }
         
+        /// <summary>
+        /// Initializes access to save data files
+        /// </summary>
         static SaveData()
         {
             string appResourcePath = Path.Combine(
@@ -158,51 +161,64 @@ namespace PhotoOrganizer
         /// </summary>
         /// <param name="args">CLI args containing the path or name</param>
         /// <returns></returns>
-        public static Result RemoveDirectory(string[] args)
+        public static Result RemoveDirectory(string args)
         {
             bool found = false;
             // Exit on obvious errors, such as unexpected arguments
-            if (args.Length != 2)
+            if (String.IsNullOrEmpty(args))
             {
-                return Result.Failure("Expected 2 arguments, got {0}", args.Length);
+                return Result.Failure("Expected path or name, but got empty string");
             }
 
             // Look for it
             StreamReader reader = File.OpenText(SaveData.DirectoriesFilePath);
             string newContents = String.Empty;
             int lineNumber = 1;
-            while (!reader.EndOfStream)
+            try
             {
-                DirectoryRecord rec = null;
-                if (!DirectoryRecord.TryParse(reader.ReadLine(), out rec))
+                while (!reader.EndOfStream)
                 {
-                    Console.WriteLine("Failed to parse directory on line {0}", lineNumber);
+                    DirectoryRecord rec = null;
+                    if (!DirectoryRecord.TryParse(reader.ReadLine(), out rec))
+                    {
+                        Console.WriteLine("Failed to parse directory on line {0}", lineNumber);
+                        lineNumber++;
+                        continue;
+                    }
                     lineNumber++;
-                    continue;
-                }
-                lineNumber++;
 
-                // See if this rec we are looking at matches the query given by the user
-                if (args[1] == rec.Path || (!String.IsNullOrEmpty(args[1]) && args[1] == rec.Alias))
-                {
-                    // Do not write back to file
-                    found = true;
+                    // See if this rec we are looking at matches the query given by the user
+                    if (args == rec.Path || (!String.IsNullOrEmpty(args) && args == rec.Alias))
+                    {
+                        // Do not write back to file
+                        found = true;
+                    }
+                    else
+                        newContents += rec.ToString();
                 }
-                else
-                    newContents += rec.ToString();
             }
-            reader.Close();
+            finally
+            {
+                reader.Close();
+            }
 
             // If found, then write the modified file
             if (found)
             {
-                File.WriteAllText(SaveData.DirectoriesFilePath, newContents);
+                try
+                {
+                    File.WriteAllText(SaveData.DirectoriesFilePath, newContents);
+                }
+                catch (IOException)
+                {
+
+                }
                 return Result.Success();
             }
             // Otherwise don't bother rewriting the same contents
             else
             {
-                return Result.Failure("No saved directory named '{0}'", args[1]);
+                return Result.Failure("No saved directory named '{0}'", args);
             }
         }
 
@@ -217,34 +233,43 @@ namespace PhotoOrganizer
         /// <param name="scope">One of ALL, SOURCE, or TARGET</param>
         public static Result ListDirectories(string scope = "all")
         {
-            StreamReader reader = File.OpenText(SaveData.DirectoriesFilePath);
-            bool parseAll = (scope == "all") ? true : false;
-            
-            // This lets us reuse that same message thrown by the parsing method
-            DirectoryType type = DirectoryType.Source;
+            StreamReader reader = null;
             try
             {
-                if (!parseAll)
-                    type = DirectoryRecord.ParseType(scope);
+                reader = File.OpenText(SaveData.DirectoriesFilePath);
+                bool parseAll = (scope == "all") ? true : false;
+
+                // This lets us reuse that same message thrown by the parsing method
+                DirectoryType type = DirectoryType.Source;
+                try
+                {
+                    if (!parseAll)
+                        type = DirectoryRecord.ParseType(scope);
+                }
+                catch (Exception ex)
+                {
+                    return Result.Failure(ex.Message);
+                }
+
+                while (!reader.EndOfStream)
+                {
+                    DirectoryRecord rec;
+                    if (!DirectoryRecord.TryParse(reader.ReadLine(), out rec))
+                    {
+                        continue; // skip failed parse lines
+                    }
+                    if (parseAll || type == rec.Type)
+                    {
+                        string lineTail = String.IsNullOrEmpty(rec.Alias) ? "" : "\t" + rec.Alias;
+                        Console.Write(rec.Type.ToString("g") + "\t" + rec.Path + lineTail + Environment.NewLine);
+                    }
+                }
             }
-            catch (Exception ex)
+            finally
             {
-                return Result.Failure(ex.Message);
+                reader?.Close();
             }
             
-            while (!reader.EndOfStream)
-            {
-                DirectoryRecord rec;
-                if (!DirectoryRecord.TryParse(reader.ReadLine(), out rec))
-                {
-                    continue; // skip failed parse lines
-                }
-                if ( parseAll || type == rec.Type )
-                {
-                    Console.WriteLine(rec.Type.ToString("g") + "\t" + rec.Path + "\t" + rec.Alias);
-                }
-            }
-            reader.Close();
 
             return Result.Success();
         }
