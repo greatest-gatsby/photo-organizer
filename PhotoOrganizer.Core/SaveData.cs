@@ -18,12 +18,17 @@ namespace PhotoOrganizer.Core
         /// <summary>
         /// The message explaing the error. If the operation succeeded, then this returns String.Empty()
         /// </summary>
-        public string Message { get; }
+        public string Message { get; private set; }
 
         /// <summary>
         /// Returns true if the operation succeeded, else false.
         /// </summary>
-        public bool Successful { get; }
+        public bool Successful { get; private set; }
+
+        /// <summary>
+        /// Contains data associated with the operation, if any
+        /// </summary>
+        public object Data { get; private set; }
 
         /// <summary>
         /// Creates a FAILING result with the given message
@@ -46,12 +51,26 @@ namespace PhotoOrganizer.Core
         }
 
         /// <summary>
-        /// Returns a Result indicating SUCCESS
+        /// Gets the data associated with this operation, if any
         /// </summary>
-        public static Result Success() { 
+        /// <typeparam name="T">Type of the data which will be returned</typeparam>
+        /// <returns>The data associated with this operation in the requested object type</returns>
+        public T GetData<T>()
+        {
+            return (T)Data;
+        }
+
+        /// <summary>
+        /// Returns a Result with the given data
+        /// </summary>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        public static Result Success(object data = null)
+        {
+            return new Result()
             {
-                return new Result();
-            }
+                Data = data
+            };
         }
 
         /// <summary>
@@ -63,6 +82,19 @@ namespace PhotoOrganizer.Core
         public static Result Failure(string message, params object[] args) { 
             {
                 return new Result(message, args);
+            }
+        }
+
+        /// <summary>
+        /// Returns a Result indicating FAILURE with the given message
+        /// </summary>
+        /// <param name="message">The message to explain the failure</param>
+        /// <param name="args">Optional array of objects to use when formatting the string.</param>
+        /// <returns>A result indicating FAILURE with the given message</returns>
+        public static Result Failure(string message, object data, params object[] args)
+        {
+            {
+                return new Result(message, args) { Data = data } ;
             }
         }
     }
@@ -127,7 +159,7 @@ namespace PhotoOrganizer.Core
         /// <summary>
         /// Adds the given record to the Directories file
         /// </summary>
-        /// <param name="category">Category of data to append</param>
+        /// <param name="category">Category of data to append</param>   
         /// <param name="element">XElement to insert in file</param>
         public static Result AddDirectory(DirectoryRecord record)
         {
@@ -222,7 +254,7 @@ namespace PhotoOrganizer.Core
             }
         }
 
-        public static Result Move()
+        public static Result Move(string[] args)
         {
             return Result.Success();
         }
@@ -272,6 +304,51 @@ namespace PhotoOrganizer.Core
             
 
             return Result.Success();
+        }
+
+        /// <summary>
+        /// Gets DirectoryRecords for all the directories in the directories config file that match the given type
+        /// </summary>
+        /// <param name="scope">One of ALL, SOURCE, or TARGET</param>
+        /// <returns>An array of directory records</returns>
+        public static Result GetDirectories(string scope = "all")
+        {
+            List<DirectoryRecord> records = new List<DirectoryRecord>();
+            StreamReader reader = null;
+            try
+            {
+                reader = File.OpenText(SaveData.DirectoriesFilePath);
+                bool parseAll = (scope == "all") ? true : false;
+
+                // This lets us reuse that same message thrown by the parsing method
+                DirectoryType type = DirectoryType.Source;
+                if (!DirectoryRecord.TryParseType(scope, out type))
+                {
+                    return null;
+                }
+                int line = 1;
+                while (!reader.EndOfStream)
+                {
+                    DirectoryRecord rec;
+                    // cancel at the first failed parse
+                    if (!DirectoryRecord.TryParse(reader.ReadLine(), out rec))
+                    {
+                        return Result.Failure("Failed to parse directory on line {0}", line);
+                    }
+                    // only add if of the requested type
+                    else if (parseAll || type == rec.Type)
+                    {
+                        records.Add(rec);
+                    }
+                }
+            }
+            finally
+            {
+                reader?.Close();
+            }
+
+
+            return Result.Success(records.ToArray());
         }
     }
 }

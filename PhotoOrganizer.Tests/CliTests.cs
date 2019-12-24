@@ -108,7 +108,7 @@ namespace PhotoOrganizer.Tests
             const string arg_count_wrong = "add C:\\Ay";
             string result = Runner.RunProgram(arg_count_wrong);
 
-            Assert.That(result, Contains.Substring("did you specify directory")); // language dependent af but it works for now
+            Assert.That(result, Contains.Substring("did you specify directory"));
         }
 
         [Test]

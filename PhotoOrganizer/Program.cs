@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
+using System.Linq.Expressions;
 using PhotoOrganizer.Core;
 
 namespace PhotoOrganizer
@@ -26,26 +28,26 @@ namespace PhotoOrganizer
             switch (command)
             {
                 case "add":
-                    AddDirectory(args);
-                    break;
+                    return AddDirectory(args);
                 case "move":
-                    SaveData.Move();
-                    break;
+                    return ExecuteMove(args);
                 case "list":
-                    ListDirectories(args);
-                    break;
+                    return ListDirectories(args);
                 case "remove":
-                    RemoveDirectory(args);
-                    break;
+                    return RemoveDirectory(args);
                 case "scheme":
+                    return Schemes(args);
 
-                    break;
+                // 'help' should print usage but report program success
+                case "help":
+                case "--help":
+                case "h":
+                    PrintUsage();
+                    return 0;
                 default:
                     PrintUsage();
                     return 1;
             }
-
-            return 0;
 
         }
 
@@ -72,7 +74,7 @@ namespace PhotoOrganizer
             Console.WriteLine("add <source | target> $path [$name]");
 
             // MOVE usage
-            Console.WriteLine("move <source | target> $name");
+            Console.WriteLine("move $source_identifier [$addl_source, ...] $target_identifier");
 
             // LIST usage
             Console.WriteLine("list [source | target]");
@@ -247,6 +249,54 @@ namespace PhotoOrganizer
                 Console.WriteLine(result.Message);
                 return 1;
             }
+        }
+
+        /// <summary>
+        /// Executes a move operation on stored directories
+        /// </summary>
+        /// <param name="args">CLI args</param>
+        /// <returns>Status code program should echo before exiting</returns>
+        static int ExecuteMove(string[] args)
+        {
+            // After command is consumed, expecting:
+            // $source_identifier [$addl_source, ...] $target_identifier
+
+            // reject wrong number of args
+            if (args.Length < 2)
+            {
+                Console.WriteLine("Expected 2 arguments, got {0}", args.Length);
+                return 1;
+            }
+
+            // Get directories
+            var result = SaveData.GetDirectories();
+            if (!result.Successful)
+            {
+                Console.WriteLine(result.Message);
+                return 1;
+            }
+
+            var recs = result.GetData<DirectoryRecord[]>();
+            // Verify that the last arg is a target
+            if (!recs.Any(r => (r.Type == DirectoryType.Target) && ( r.Identifier == args[args.Length - 1]) ))
+            {
+                Console.WriteLine("No saved target directory {0}", args[args.Length - 1]);
+                return 1;
+            }
+
+            // Verify that the other args are all sources
+            for (int i = 0; i < args.Length - 1; i++)
+            {
+                if (!recs.Any(r => (r.Type == DirectoryType.Source) && (r.Identifier == args[i])))
+                {
+                    Console.WriteLine("No saved source directory {0}", args[i]);
+                    return 1;
+                }
+            }
+
+            // This is valid. Execute now.
+            SaveData.Move(args);
+            throw new NotImplementedException();
         }
 
         /// <summary>
