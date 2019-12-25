@@ -18,12 +18,17 @@ namespace PhotoOrganizer.Core
         /// <summary>
         /// The message explaing the error. If the operation succeeded, then this returns String.Empty()
         /// </summary>
-        public string Message { get; }
+        public string Message { get; private set; }
 
         /// <summary>
         /// Returns true if the operation succeeded, else false.
         /// </summary>
-        public bool Successful { get; }
+        public bool Successful { get; private set; }
+
+        /// <summary>
+        /// Contains data associated with the operation, if any
+        /// </summary>
+        public object Data { get; private set; }
 
         /// <summary>
         /// Creates a FAILING result with the given message
@@ -46,12 +51,26 @@ namespace PhotoOrganizer.Core
         }
 
         /// <summary>
-        /// Returns a Result indicating SUCCESS
+        /// Gets the data associated with this operation, if any
         /// </summary>
-        public static Result Success() { 
+        /// <typeparam name="T">Type of the data which will be returned</typeparam>
+        /// <returns>The data associated with this operation in the requested object type</returns>
+        public T GetData<T>()
+        {
+            return (T)Data;
+        }
+
+        /// <summary>
+        /// Returns a Result with the given data
+        /// </summary>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        public static Result Success(object data = null)
+        {
+            return new Result()
             {
-                return new Result();
-            }
+                Data = data
+            };
         }
 
         /// <summary>
@@ -65,6 +84,19 @@ namespace PhotoOrganizer.Core
                 return new Result(message, args);
             }
         }
+
+        /// <summary>
+        /// Returns a Result indicating FAILURE with the given message
+        /// </summary>
+        /// <param name="message">The message to explain the failure</param>
+        /// <param name="args">Optional array of objects to use when formatting the string.</param>
+        /// <returns>A result indicating FAILURE with the given message</returns>
+        public static Result Failure(string message, object data, params object[] args)
+        {
+            {
+                return new Result(message, args) { Data = data } ;
+            }
+        }
     }
 
     public static class SaveData
@@ -74,13 +106,24 @@ namespace PhotoOrganizer.Core
         /// </summary>
         public static string DataDirectory { get; set; }
 
-
+        /// <summary>
+        /// Name of the directories file without the path or extension
+        /// </summary>
         public static string DirectoriesFileName { get { return "directories"; } }
 
+        /// <summary>
+        /// Full path and filename to the directories file
+        /// </summary>
         public static string DirectoriesFilePath { get { return Path.Combine(DataDirectory, DirectoriesFileName); } }
 
+        /// <summary>
+        /// Name of the schemes file without the path or extension
+        /// </summary>
         public static string SchemesFileName { get { return "schemes"; } }
 
+        /// <summary>
+        /// Full path and filename to the schemes file
+        /// </summary>
         public static string SchemesFilePath { get { return Path.Combine(DataDirectory, SchemesFileName); } }
 
         /// <summary>
@@ -114,12 +157,19 @@ namespace PhotoOrganizer.Core
                     DataDirectory = appResourcePath;
                     Console.WriteLine("Created config at " + ConfigPath);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     // Use current directory instead
-                    File.WriteAllText(Path.Combine(Environment.CurrentDirectory, DirectoriesFileName), "");
-                    DataDirectory = Environment.CurrentDirectory;
-                    Console.WriteLine("Created config at " + ConfigPath);
+                    try
+                    {
+                        File.WriteAllText(Path.Combine(Environment.CurrentDirectory, DirectoriesFileName), "");
+                        DataDirectory = Environment.CurrentDirectory;
+                        Console.WriteLine("Created config at " + ConfigPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new ApplicationException("Could not determine a writable path for config files", ex);
+                    }
                 }
             }
         }
@@ -127,7 +177,7 @@ namespace PhotoOrganizer.Core
         /// <summary>
         /// Adds the given record to the Directories file
         /// </summary>
-        /// <param name="category">Category of data to append</param>
+        /// <param name="category">Category of data to append</param>   
         /// <param name="element">XElement to insert in file</param>
         public static Result AddDirectory(DirectoryRecord record)
         {
@@ -222,11 +272,6 @@ namespace PhotoOrganizer.Core
             }
         }
 
-        public static Result Move()
-        {
-            return Result.Success();
-        }
-
         /// <summary>
         /// Lists directories of the given type. If an invalid type is given, no message or error is given.
         /// </summary>
@@ -272,6 +317,212 @@ namespace PhotoOrganizer.Core
             
 
             return Result.Success();
+        }
+
+        /// <summary>
+        /// Gets DirectoryRecords for all the directories in the directories config file that match the given type
+        /// </summary>
+        /// <param name="scope">One of ALL, SOURCE, or TARGET</param>
+        /// <returns>An array of directory records</returns>
+        public static Result GetDirectories(string scope = "all")
+        {
+            List<DirectoryRecord> records = new List<DirectoryRecord>();
+            StreamReader reader = null;
+            try
+            {
+                reader = File.OpenText(SaveData.DirectoriesFilePath);
+                bool parseAll = (scope == "all") ? true : false;
+
+                // This lets us reuse that same message thrown by the parsing method
+                DirectoryType type = DirectoryType.Source;
+                if (!SourceDirectory.TryParseType(scope, out type))
+                {
+                    return null;
+                }
+                int line = 1;
+                while (!reader.EndOfStream)
+                {
+                    DirectoryRecord rec;
+                    // cancel at the first failed parse
+                    if (!DirectoryRecord.TryParse(reader.ReadLine(), out rec))
+                    {
+                        return Result.Failure("Failed to parse directory on line {0}", line);
+                    }
+                    // only add if of the requested type
+                    else if (parseAll || type == rec.Type)
+                    {
+                        records.Add(rec);
+                    }
+                }
+            }
+            finally
+            {
+                reader?.Close();
+            }
+
+
+            return Result.Success(records.ToArray());
+        }
+
+        /// <summary>
+        /// Verifies that all the DirectoryRecords in <paramref name="input"/> are registered directories.
+        /// Stores a boolean indicating whether all input directories are registered: true if all are, else false.
+        /// </summary>
+        /// <param name="input">List of DirectoryRecords to verify</param>
+        /// <returns>A Result object which reports whether the validation was successful.
+        /// If the operation is succesful, the status of the validity is stored in the Data field.</returns>
+        public static Result ValidateDirectories(IList<DirectoryRecord> input)
+        {
+            StreamReader reader = null;
+            try
+            {
+                reader = File.OpenText(SaveData.DirectoriesFilePath);
+
+                int line = 1;
+                while (!reader.EndOfStream && input.Count > 0)
+                {
+                    DirectoryRecord rec;
+                    // cancel at the first failed parse
+                    if (!DirectoryRecord.TryParse(reader.ReadLine(), out rec))
+                    {
+                        return Result.Failure("Failed to parse directory on line {0}", line);
+                    }
+                    // only add if of the requested type
+                    else
+                    {
+                        // If input contains this, remove it
+                        int index = input.IndexOf(rec);
+                        if (index != -1)
+                        {
+                            input.RemoveAt(index);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return Result.Failure(ex.ToString());
+            }
+            finally
+            {
+                reader?.Close();
+            }
+
+            // If all inputs were matches, that list should be empty now
+            if (input.Count > 0)
+            {
+                return Result.Success(false);
+            }
+            else
+                return Result.Success(true);
+        }
+
+        /// <summary>
+        /// Verifies that all the identifiers in <paramref name="input"/> are stored in the config file.
+        /// If all are, <see cref="Result.Successful"/> is TRUE and <see cref="Result.Data"/> is populated
+        /// with the list of saved, matching DirectoryRecords, else it is FALSE and <see cref="Result.Data"/>
+        /// is populated with the list of inputs that were not found in saved files.
+        /// </summary>
+        /// <typeparam name="DirectoryRecord">Type of Directory Record which should be populated in
+        /// <see cref="Result.Data"/> if the inputs match.</typeparam>
+        /// <param name="input">Array of identifiers (paths or aliases)</param>
+        /// <returns>A Result indicating whether the operation was successful</returns>
+        public static Result ValidateDirectories<DirectoryRecord>(string[] input)
+        {
+            Array.Sort(input);
+            StreamReader reader = null;
+            int count = input.Length;
+            List<Core.DirectoryRecord> records = new List<Core.DirectoryRecord>();
+            try
+            {
+                reader = File.OpenText(SaveData.DirectoriesFilePath);
+                int line = 1;
+                while (!reader.EndOfStream && count > 0)
+                {
+                    Core.DirectoryRecord rec;
+                    // cancel at the first failed parse
+                    if (!Core.DirectoryRecord.TryParse(reader.ReadLine(), out rec))
+                    {
+                        return Result.Failure("Failed to parse directory on line {0}", line);
+                    }
+                    // only add if of the requested type
+                    else
+                    {
+                        // See if user included this record by path
+                        int index = Array.BinarySearch(input, rec.Path);
+                        // or search by alias
+                        if (index == -1 && (rec.Path != rec.Identifier))
+                        {
+                            index = Array.BinarySearch(input, rec.Path);
+                        }
+
+                        // If we found the item in the given list of directories, add one to successful count
+                        if (index != -1)
+                        {
+                            count--;
+                            records.Add(rec);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return Result.Failure(ex.ToString());
+            }
+            finally
+            {
+                reader?.Close();
+            }
+
+            // If all inputs were matches, that list should be empty now
+            if (count > 0)
+            {
+                // say that the operation was successful, but the given directories were not valid (pass list into data)
+                // Determine all input directories that were not found in config
+                string notFound = String.Empty;
+                for (int i = 0; i < input.Length; i++)
+                {
+                    if (!String.IsNullOrEmpty(input[i]))
+                    {
+                        notFound += input[i] + Environment.NewLine;
+                    }
+                }
+                notFound = notFound.Substring(0, notFound.Length - Environment.NewLine.Length); // remove trailing newline
+                return Result.Failure(notFound);
+            }
+            else
+            // return the records we found, in the right format
+            {
+                if (typeof(DirectoryRecord).Name == typeof(SourceDirectory).Name)
+                {
+                    List<SourceDirectory> rets = new List<SourceDirectory>();
+                    while (records.Count > 0)
+                    {
+                        rets.Add((SourceDirectory)records[0]);
+                        records.RemoveAt(0);
+                    }
+                    return Result.Success(rets);
+
+                }
+                else if (typeof(DirectoryRecord).Name == typeof(TargetDirectory).Name)
+                {
+                    List<TargetDirectory> rets = new List<TargetDirectory>();
+                    while (records.Count > 0)
+                    {
+                        rets.Add((TargetDirectory)records[0]);
+                        records.RemoveAt(0);
+                    }
+                    return Result.Success(rets);
+                }
+                else
+                {
+                    return Result.Failure("Unknown type {0}", typeof(DirectoryRecord).FullName);
+                }
+            }
+
+            // Now do the move
+
+            throw new NotImplementedException();
         }
     }
 }

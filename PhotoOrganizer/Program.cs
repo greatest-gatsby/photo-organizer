@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
+using System.Linq.Expressions;
 using PhotoOrganizer.Core;
 
 namespace PhotoOrganizer
@@ -26,26 +28,26 @@ namespace PhotoOrganizer
             switch (command)
             {
                 case "add":
-                    AddDirectory(args);
-                    break;
+                    return AddDirectory(args);
                 case "move":
-                    SaveData.Move();
-                    break;
+                    return ExecuteMove(args);
                 case "list":
-                    ListDirectories(args);
-                    break;
+                    return ListDirectories(args);
                 case "remove":
-                    RemoveDirectory(args);
-                    break;
+                    return RemoveDirectory(args);
                 case "scheme":
+                    return Schemes(args);
 
-                    break;
+                // 'help' should print usage but report program success
+                case "help":
+                case "--help":
+                case "h":
+                    PrintUsage();
+                    return 0;
                 default:
                     PrintUsage();
                     return 1;
             }
-
-            return 0;
 
         }
 
@@ -72,7 +74,7 @@ namespace PhotoOrganizer
             Console.WriteLine("add <source | target> $path [$name]");
 
             // MOVE usage
-            Console.WriteLine("move <source | target> $name");
+            Console.WriteLine("move $source_identifier [$addl_source, ...] $target_identifier");
 
             // LIST usage
             Console.WriteLine("list [source | target]");
@@ -155,11 +157,7 @@ namespace PhotoOrganizer
             }
 
             // Create record
-            DirectoryRecord record = new DirectoryRecord()
-            {
-                Type = type,
-                Path = args[1]
-            };
+            DirectoryRecord record = new DirectoryRecord(type, args[1]);
             
             // Add alias if included
             if (args.Length == 3)
@@ -238,6 +236,35 @@ namespace PhotoOrganizer
             // <$name | $path>
 
             var result = SaveData.RemoveDirectory(args[0]);
+            if (result.Successful)
+            {
+                return 0;
+            }
+            else
+            {
+                Console.WriteLine(result.Message);
+                return 1;
+            }
+        }
+
+        /// <summary>
+        /// Executes a move operation on stored directories
+        /// </summary>
+        /// <param name="args">CLI args</param>
+        /// <returns>Status code program should echo before exiting</returns>
+        static int ExecuteMove(string[] args)
+        {
+            // After command is consumed, expecting:
+            // $source_identifier [$addl_source, ...] $target_identifier
+
+            // reject wrong number of args
+            if (args.Length < 2)
+            {
+                Console.WriteLine("Expected 2 arguments, got {0}", args.Length);
+                return 1;
+            }
+
+            var result = Organizer.Move(args);
             if (result.Successful)
             {
                 return 0;
