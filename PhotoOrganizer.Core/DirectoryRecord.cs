@@ -10,15 +10,14 @@ namespace PhotoOrganizer.Core
     [Serializable]
     public class DirectoryRecord
     {
-        /// <summary>
-        /// Empty constructor
-        /// </summary>
-        public DirectoryRecord() { }
+        protected DirectoryRecord() { }
 
-        /// <summary>
-        /// Path to the directory
-        /// </summary>
-        public string Path { get; set; }
+        public DirectoryRecord(DirectoryType type, string path, string alias = "")
+        {
+            Type = type;
+            Path = path;
+            Alias = alias;
+        }
 
         /// <summary>
         /// Alternate name for the directory
@@ -26,28 +25,32 @@ namespace PhotoOrganizer.Core
         public string Alias { get; set; }
 
         /// <summary>
-        /// If true, searches all subfolders for images
+        /// Path to the directory
         /// </summary>
-        public bool IsRecursive { get; set; }
-
-        /// <summary>
-        /// idk
-        /// </summary>
-        public DirectoryType Type { get; set; }
+        public string Path { get; set; }
 
         /// <summary>
         /// Returns the best way for a user to recognize this record: its alias if it exists, else its path
         /// </summary>
-        public string Identifier { get { return String.IsNullOrEmpty(Alias) ? Path : Alias; } }
-
-        public IEnumerable<string> RetrieveImages()
+        public string Identifier
         {
-            List<string> ret = new List<string>();
-            
-
-            return ret;
+            get { return String.IsNullOrEmpty(Alias) ? Path : Alias; }
         }
 
+        /// <summary>
+        /// Determines whether the given string can be used to identify this record. Checks path and alias.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public bool IdentifiableBy(string value)
+        {
+            return (value == this.Alias) || (value == this.Path);
+        }
+
+        /// <summary>
+        /// Shows what kind of directory this is
+        /// </summary>
+        public DirectoryType Type { get; protected set; }
 
         /// <summary>
         /// Constructs a string of the record in the easily parsable format
@@ -72,7 +75,7 @@ namespace PhotoOrganizer.Core
 
             // Intensely process the string by splitting at tabs
             string[] processed = input.Split('\t');
-            
+
             // Fail on obvious errors
             if (processed.Length > 3 || processed.Length < 2)
             {
@@ -175,7 +178,7 @@ namespace PhotoOrganizer.Core
                 return DirectoryType.Target;
             }
             else
-                throw new FormatException(DirectoryRecord.WrongType(input));
+                throw new FormatException(SourceDirectory.WrongType(input));
         }
 
         /// <summary>
@@ -188,7 +191,7 @@ namespace PhotoOrganizer.Core
         {
             try
             {
-                type = DirectoryRecord.ParseType(input);
+                type = SourceDirectory.ParseType(input);
                 return true;
             }
             catch
@@ -207,6 +210,40 @@ namespace PhotoOrganizer.Core
         {
             return "Unknown directory type " + type;
         }
+    }
+
+    public class SourceDirectory : DirectoryRecord
+    {
+        /// <summary>
+        /// Empty constructor
+        /// </summary>
+        public SourceDirectory() 
+        {
+            Type = DirectoryType.Source;
+        }
+
+        /// <summary>
+        /// If true, searches all subfolders for images
+        /// </summary>
+        public bool IsRecursive { get; set; }
+
+        public IEnumerable<string> RetrieveImages()
+        {
+            List<string> ret = new List<string>();
+            
+
+            return ret;
+        }
+    }
+
+    public class TargetDirectory : DirectoryRecord
+    {
+        public TargetDirectory()
+        {
+            Type = DirectoryType.Target;
+        }
+
+        public DirectoryScheme Scheme { get; set; }
     }
 
     public enum DirectoryType

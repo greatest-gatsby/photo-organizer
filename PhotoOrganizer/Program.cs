@@ -157,11 +157,7 @@ namespace PhotoOrganizer
             }
 
             // Create record
-            DirectoryRecord record = new DirectoryRecord()
-            {
-                Type = type,
-                Path = args[1]
-            };
+            DirectoryRecord record = new DirectoryRecord(type, args[1]);
             
             // Add alias if included
             if (args.Length == 3)
@@ -268,35 +264,16 @@ namespace PhotoOrganizer
                 return 1;
             }
 
-            // Get directories
-            var result = SaveData.GetDirectories();
-            if (!result.Successful)
+            var result = Organizer.Move(args);
+            if (result.Successful)
+            {
+                return 0;
+            }
+            else
             {
                 Console.WriteLine(result.Message);
                 return 1;
             }
-
-            var recs = result.GetData<DirectoryRecord[]>();
-            // Verify that the last arg is a target
-            if (!recs.Any(r => (r.Type == DirectoryType.Target) && ( r.Identifier == args[args.Length - 1]) ))
-            {
-                Console.WriteLine("No saved target directory {0}", args[args.Length - 1]);
-                return 1;
-            }
-
-            // Verify that the other args are all sources
-            for (int i = 0; i < args.Length - 1; i++)
-            {
-                if (!recs.Any(r => (r.Type == DirectoryType.Source) && (r.Identifier == args[i])))
-                {
-                    Console.WriteLine("No saved source directory {0}", args[i]);
-                    return 1;
-                }
-            }
-
-            // This is valid. Execute now.
-            SaveData.Move(args);
-            throw new NotImplementedException();
         }
 
         /// <summary>

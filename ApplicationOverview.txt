@@ -1,0 +1,16 @@
+Project consists of two working parts, and a test project.
+
+Parts:
+1. PhotoOrganizer.Core [library]
+2. PhotoOrganizer [CLI program]
+
+The LIBRARY handles the heavy lifting business logic--moving files, checking duplicates and filenames, etc. Almost all errors in this library throw exceptions, except for cases like TryParse, which suppress errors and return booleans instead.
+
+The CLI PROGRAM just bridges the user to the library. Errors in this namespace either return a Result object indicating failure, or simply print an error message to the screen and exit the program with an error status code. THE CLI PROGRAM SHOULD NEVER CRASH. It should be a nice, human-friendly wrapper around the library that helps correct mistakes or at least detail the mistake.
+
+FLOW:
+1. CLI args consumed by Program.Main
+2. Switches on command to static command methods which take CLI args and return status codes
+3. Static command method, such as "ListDirectories", only validate input. E.g. verify the given directory type is valid. This model checking is implemented in the library (DirectoryRecord.ParseType(input)), and the static command method checks the return value to report on input validity.
+4. If CLI args are valid, static command executes the library-side functions in Organizer.
+5. If the function affects save data (like changes to config files), then the Organizer function will also call the SaveData class.

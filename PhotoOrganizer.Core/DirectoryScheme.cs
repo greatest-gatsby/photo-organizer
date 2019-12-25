@@ -13,5 +13,10 @@ namespace PhotoOrganizer.Core
         {
             throw new NotImplementedException();
         }
+
+        public bool TryParse(string input, out SourceDirectory rec)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

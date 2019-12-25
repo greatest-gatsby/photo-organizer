@@ -55,10 +55,10 @@ namespace PhotoOrganizer.Tests
             const string arg_wrong = "list undertaker";
 
             string result = Runner.RunProgram(arg_plural);
-            Assert.AreEqual(DirectoryRecord.WrongType("sources").ToLower(), result, "Program accepted the plural of a valid type");
+            Assert.AreEqual(SourceDirectory.WrongType("sources").ToLower(), result, "Program accepted the plural of a valid type");
 
             result = Runner.RunProgram(arg_wrong);
-            Assert.AreEqual(DirectoryRecord.WrongType("undertaker").ToLower(), result, "Program accepted an invalid type");
+            Assert.AreEqual(SourceDirectory.WrongType("undertaker").ToLower(), result, "Program accepted an invalid type");
         }
 
         [Test]
@@ -70,10 +70,10 @@ namespace PhotoOrganizer.Tests
             const string arg_base = "list";
 
             string result = Runner.RunProgram(arg_source);
-            Assert.AreNotEqual(DirectoryRecord.WrongType("source").ToLower(), result);
+            Assert.AreNotEqual(SourceDirectory.WrongType("source").ToLower(), result);
 
             result = Runner.RunProgram(arg_target);
-            Assert.AreNotEqual(DirectoryRecord.WrongType("target").ToLower(), result);
+            Assert.AreNotEqual(SourceDirectory.WrongType("target").ToLower(), result);
 
             result = Runner.RunProgram(arg_base);
             Assert.IsFalse(result.Contains("unrecognized type")); // super bad test theoretically but practically its fine, maybe
@@ -98,7 +98,7 @@ namespace PhotoOrganizer.Tests
             const string arg_type_wrong = "add sources C:\\Ay";
             string result = Runner.RunProgram(arg_type_wrong);
 
-            Assert.AreEqual(DirectoryRecord.WrongType("sources").ToLower(), result);
+            Assert.AreEqual(SourceDirectory.WrongType("sources").ToLower(), result);
         }
 
         [Test]
