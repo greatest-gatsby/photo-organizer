@@ -371,7 +371,7 @@ namespace PhotoOrganizer.Core
         /// <param name="input">List of DirectoryRecords to verify</param>
         /// <returns>A Result object which reports whether the validation was successful.
         /// If the operation is succesful, the status of the validity is stored in the Data field.</returns>
-        public static Result ValidateDirectories(IList<DirectoryRecord> input)
+        public static Result ValidateDirectories(List<DirectoryRecord> input)
         {
             StreamReader reader = null;
             try
@@ -415,6 +415,59 @@ namespace PhotoOrganizer.Core
             }
             else
                 return Result.Success(true);
+        }
+
+        /// <summary>
+        /// Verifies that all the DirectoryRecords in <paramref name="input"/> are registered directories.
+        /// Stores a boolean indicating whether all input directories are registered: true if all are, else false.
+        /// </summary>
+        /// <param name="input">List of DirectoryRecords to verify</param>
+        /// <returns>A Result object which reports whether the validation was successful.
+        /// If the operation is succesful, the status of the validity is stored in the Data field.</returns>
+        public static Result ValidateDirectories(DirectoryRecord[] input)
+        {
+            StreamReader reader = null;
+            try
+            {
+                reader = File.OpenText(SaveData.DirectoriesFilePath);
+
+                int line = 1;
+                while (!reader.EndOfStream && input.Length > 0)
+                {
+                    DirectoryRecord rec;
+                    // cancel at the first failed parse
+                    if (!DirectoryRecord.TryParse(reader.ReadLine(), out rec))
+                    {
+                        return Result.Failure("Failed to parse directory on line {0}", line);
+                    }
+                    // only add if of the requested type
+                    else
+                    {
+                        // If input contains this, remove it
+                        int index = Array.IndexOf(input, rec);
+                        if (index != -1)
+                        {
+                            input[index] = null;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return Result.Failure(ex.ToString());
+            }
+            finally
+            {
+                reader?.Close();
+            }
+
+            // If all inputs were matches, that list should be empty now
+            if (input.Any(r => r != null))
+            {
+                return Result.Success(true);
+            }
+            else
+                return Result.Success(false);
         }
 
         /// <summary>

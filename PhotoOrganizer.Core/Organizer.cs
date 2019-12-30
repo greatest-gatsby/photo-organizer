@@ -58,33 +58,46 @@ namespace PhotoOrganizer.Core
         {
             // After command is consumed, expecting:
             // $source_identifier [$addl_source, ...] $target_identifier
+            // or
+            // $source_identifier [$addl_source, ...] TO $target_identifier [$addl_target, ...]
             if (args.Length < 2)
             {
                 return Result.Failure("Expected 2 or more arguments, got {0}", args.Length);
             }
 
-            // Get directories
-            var result = SaveData.GetDirectories();
-            if (!result.Successful)
-            {
-                return result;
-            }
+            string[] sources = null;
+            string[] targets = null;
 
-            var recs = result.GetData<DirectoryRecord[]>();
-            // Verify that the last arg is a target
-            if (!recs.Any(r => (r.Type == DirectoryType.Target) && (r.Identifier == args[args.Length - 1])))
+            // Determine where sources end and targets begin
+            int toLoc = Array.FindIndex<string>(args, r => r.ToLower() == "to");
+            if (toLoc == -1)
             {
-                return Result.Failure("No saved target directory {0}", args[args.Length - 1]);
+                sources = new string[args.Length - 1];
+                Array.Copy(args, 0, sources, 0, sources.Length);
+                targets = new string[1];
+                Array.Copy(args, sources.Length, targets, 0, 1);
             }
-
-            // Verify that the other args are all sources
-            for (int i = 0; i < args.Length - 1; i++)
+            else
             {
-                if (!recs.Any(r => (r.Type == DirectoryType.Source) && (r.Identifier == args[i])))
+                if (toLoc != Array.FindLastIndex<string>(args, r => r.ToLower() == "to"))
                 {
-                    return Result.Failure("No saved source directory {0}", args[i]);
+                    return Result.Failure("Too many uses of reserved keyword 'to'");
+                }
+                else
+                {
+                    sources = new string[toLoc - 1];
+                    Array.Copy(args, 0, sources, 0, toLoc - 1);
+                    targets = new string[args.Length - toLoc];
+                    Array.Copy(args, toLoc + 1, targets, 0, args.Length - toLoc);
                 }
             }
+
+            MoveCollection collection = null;
+            if (!MoveCollection.TryBuildCollection(sources, targets, out collection))
+            {
+                return Result.Failure("Unable to build collection");
+            }
+
             throw new NotImplementedException();
         }
     }
