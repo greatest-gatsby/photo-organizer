@@ -11,12 +11,12 @@ Year-Month->*
    IMG_20.jpg
 2018-04 Apr
    IMG_25.jpg
-{Y}\{M}\{I}.{E}
+%Y\%M\%I.%E
 
-Format strings are same as .NET Core 3.1 DateTime custom format strings:
+Format strings are SIMILAR TO .NET Core 3.1 DateTime custom format strings:
 
-d = day of month as integer, no leading zero
-dd = day of month as integer, leading zero
+D = day of month as integer, no leading zero
+DD = day of month as integer, leading zero
 YY = year as integer, last two digits, leading zero
 YYYY = year as integer, minimum last four digits, leading zero if less than four
 M = month as integer, no leading zero

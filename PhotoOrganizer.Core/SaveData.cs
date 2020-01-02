@@ -94,7 +94,10 @@ namespace PhotoOrganizer.Core
         public static Result Failure(string message, object data, params object[] args)
         {
             {
-                return new Result(message, args) { Data = data } ;
+                if (args == null || args.Length == 0)
+                    return new Result(message, data) { Data = data };
+                else
+                    return new Result(message, args) { Data = data } ;
             }
         }
     }
@@ -574,6 +577,17 @@ namespace PhotoOrganizer.Core
             }
 
             // Now do the move
+
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Adds a DirectoryScheme to the saved schemes file
+        /// </summary>
+        /// <param name="scheme">Scheme object to save</param>
+        /// <returns>A Result indicating whether the operation was successful</returns>
+        public static Result AddScheme(DirectoryScheme scheme)
+        {
 
             throw new NotImplementedException();
         }

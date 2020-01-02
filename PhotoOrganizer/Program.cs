@@ -17,6 +17,11 @@ namespace PhotoOrganizer
                 return 1;
             }
 
+            for (int i = 0; i < args.Length; i++)
+            {
+                //Console.WriteLine("{0}\t{1}", i, args[i]);
+            }
+
             // Extract and remove application-wide options like --config
             args = ParseApplicationArguments(args);
             if (args == null)
@@ -70,6 +75,7 @@ namespace PhotoOrganizer
         static void PrintUsage()
         {
             // Directories/typical usage
+            Console.WriteLine("DIRECTORIES");
             // ADD usage
             Console.WriteLine("add <source | target> $path [$name]");
 
@@ -90,6 +96,8 @@ namespace PhotoOrganizer
             Console.WriteLine("scheme list");
 
             Console.WriteLine("scheme remove <$format | $name>");
+
+            Console.WriteLine("scheme help");
 
         }
 
@@ -123,6 +131,11 @@ namespace PhotoOrganizer
                 {
                     SaveData.DataDirectory = args[customConfig];
                 }
+            }
+
+            for (int i = 0; i < args.Length; i++)
+            {
+                args[i] = args[i].Trim('"'); // dotnet groups the args when in quotes, but does not strip the quotes
             }
             return args;
         }
@@ -290,16 +303,17 @@ namespace PhotoOrganizer
                 return 1;
             }
 
-            switch (args[1])
+            switch (args[0])
             {
                 case "add":
-
-                    break;
+                    return AddScheme(args);
                 case "list":
 
                     break;
                 case "remove":
 
+                    break;
+                case "help":
                     break;
                 default:
                     PrintUsage();
@@ -310,7 +324,23 @@ namespace PhotoOrganizer
 
         static int AddScheme(string[] args)
         {
-            return 0;
+            DirectoryScheme scheme = null;
+            if (!DirectoryScheme.TryParse(args, out scheme))
+            {
+                PrintUsage();
+                return 1;
+            }
+
+            var res = SaveData.AddScheme(scheme);
+            if (res.Successful)
+            {
+                return 0;
+            }
+            else
+            {
+                Console.WriteLine(res.Message);
+                return 1;
+            }
         }
     }
 }

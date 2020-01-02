@@ -14,7 +14,7 @@ namespace PhotoOrganizer.Tests
 
         public static string Directories = "source\tC:\\Users\\Me\\Art\tlocal-art" + Environment.NewLine
             + "source\tD:\\Photography" + Environment.NewLine
-            + "target\tE:\\Backup\\Images\tbig-disk";
+            + "target\tE:\\Backup\\Images\tbig-disk" + Environment.NewLine;
         public const string Schemes = "";
 
         [SetUp]
@@ -86,6 +86,11 @@ namespace PhotoOrganizer.Tests
             const string arg = "list";
             string result = Runner.RunProgram(arg);
 
+            if (!result.EndsWith(Environment.NewLine))
+            {
+                result += Environment.NewLine;
+            }
+
             Assert.AreEqual(Directories.ToLower(), result);
         }
         #endregion
@@ -112,22 +117,64 @@ namespace PhotoOrganizer.Tests
         }
 
         [Test]
-        [Description("Invokes the 'add' command then verifies that new addition shows up from 'list' command")]
+        [Description("Verifies that the directories added via the 'add' command show up in the 'list' command")]
         public static void Add_ConsumesArgs()
         {
-            const string arg_new = "";
+            const string arg_new = "add source B:\\atman frlyfe";
             string result = Runner.RunProgram(arg_new);
+            Assert.AreEqual(String.Empty, result);
+
+            result = Runner.RunProgram("list");
+            Assert.That(result.EndsWith("source\tB:\\atman\tfrlyfe", StringComparison.OrdinalIgnoreCase));
+
+            const string arg_new_nameless = "add target D:\\artboi";
+            result = Runner.RunProgram(arg_new_nameless);
+            Assert.AreEqual(String.Empty, result);
+
+            result = Runner.RunProgram("list");
+            Assert.That(result.EndsWith("target\td:\\artboi"));
+        }
+
+
+        #endregion
+
+        #region REMOVE
+        [Test]
+        [Description("Verifies that directories can be removed via path, even if they have an alias")]
+        public static void Remove_MatchesByPath()
+        {
+            const string remove = "remove E:\\Backup\\Images";
+            Runner.RunProgram(remove);
+            string result = Runner.RunProgram("list");
+            Assert.That(result, !Contains.Substring("e:\\backup\\images"));
         }
 
         [Test]
-        [Description("Invokes the 'add' command with valid arguments")]
-        public static void Add_ValidArgs_Accepts()
+        [Description("Verifies that directories can be removed via alias")]
+        public static void Remove_MatchesByAlias()
         {
-            const string arg_good = "add source F:\\oss rules";
-            string result = Runner.RunProgram(arg_good);
+            const string remove = "remove big-disk";
+            Runner.RunProgram(remove);
+            string result = Runner.RunProgram("list");
+            Assert.That(result, !Contains.Substring("big-disk"));
         }
 
+        [Test]
+        [Description("Verifies that the 'remove' command silently executes when given valid arguments")]
+        public static void Remove_GoodArgs_NoMessage()
+        {
+            const string remove = "remove E:\\Backup\\Images";
+            string result = Runner.RunProgram(remove);
+            Assert.That(result, Is.EqualTo(String.Empty));
+        }
 
+        [Test]
+        [Description("Verifies that the 'remove' command prints an error message when given invalid arguments")]
+        public static void Remove_BadArgs_PrintsMessage()
+        {
+            const string remove = "remove squiiire";
+            string result = Runner.RunProgram(remove);
+        }
         #endregion
     }
 }

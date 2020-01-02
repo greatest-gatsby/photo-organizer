@@ -39,6 +39,14 @@ namespace PhotoOrganizer.Tests
             Assert.AreEqual(Directory, record.Path);
             Assert.AreEqual("temp1", record.Alias);
             Assert.AreEqual(DirectoryType.Source, record.Type);
+
+            // Try with spaces in names, properly quoted
+            const string spaces = "source\t/home/your it guy didnt think of this name/or path\ttruth hurts";
+            record = DirectoryRecord.Parse(spaces);
+
+            Assert.AreEqual("/home/your it guy didnt think of this name/or path", record.Path);
+            Assert.AreEqual("truth hurts", record.Alias);
+            Assert.AreEqual(DirectoryType.Source, record.Type);
         }
 
         [Test]
@@ -53,6 +61,14 @@ namespace PhotoOrganizer.Tests
             Assert.AreEqual(Directory, record.Path);
             Assert.AreEqual(null, record.Alias);
             Assert.AreEqual(DirectoryType.Source, record.Type);
+
+            // Try with spaces in names, properly quoted
+            const string spaces = "target\t/mnt/every moment ever/i phone\tsubscribe 2 pewdiepie";
+            record = DirectoryRecord.Parse(spaces);
+
+            Assert.AreEqual("/mnt/every moment ever/i phone", record.Path);
+            Assert.AreEqual("subscribe 2 pewdiepie", record.Alias);
+            Assert.AreEqual(DirectoryType.Target, record.Type);
         }
 
         [Test]
@@ -92,7 +108,32 @@ namespace PhotoOrganizer.Tests
             Assert.IsFalse(rec1.IdentifiableBy("truth"), "Accepted case-insensitive query, which is N.E.B.");
             Assert.IsFalse(rec1.IdentifiableBy("china"), "Accepted a partial match, which is N.E.B.");
         }
+    }
 
+    public class UtilityTests
+    {
+        [Test]
+        [Description("Verifies that strings given to the Result.Failure() method are formatted")]
+        public void Result_Failure_FormatsArgs()
+        {
+            var res = Result.Failure("This is the base {0} l", "message");
+            Assert.That(res.Message, Is.EqualTo("This is the base message l"));
+        }
 
+        [Test]
+        [Description("Verifies that data given to the Result.Failure() method are filled in the returned object")]
+        public void Result_Failure_FillsData()
+        {
+            var res = Result.Failure("This is the data", data: 722);
+            Assert.That(res.Data, Is.EqualTo(722));
+        }
+
+        [Test]
+        [Description("Verifies that strings given to the Result.Success() method are formatted")]
+        public void Result_Success_FillsData()
+        {
+            var res = Result.Success("the fancy data object goes here");
+            Assert.That(res.Data, Is.EqualTo("the fancy data object goes here"));
+        }
     }
 }

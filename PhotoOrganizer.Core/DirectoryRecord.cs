@@ -107,7 +107,6 @@ namespace PhotoOrganizer.Core
             // [1] $path
             // [2] [$alias]
 
-
             DirectoryRecord record = new DirectoryRecord()
             {
                 Type = DirectoryRecord.ParseType(input[0]),
