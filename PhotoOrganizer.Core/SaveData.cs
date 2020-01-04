@@ -79,7 +79,7 @@ namespace PhotoOrganizer.Core
         /// <param name="message">The message to explain the failure</param>
         /// <param name="args">Optional array of objects to use when formatting the string.</param>
         /// <returns>A result indicating FAILURE with the given message</returns>
-        public static Result Failure(string message, params object[] args) { 
+        public static Result Failure(string message, params object[] args) {
             {
                 return new Result(message, args);
             }
@@ -97,7 +97,7 @@ namespace PhotoOrganizer.Core
                 if (args == null || args.Length == 0)
                     return new Result(message, data) { Data = data };
                 else
-                    return new Result(message, args) { Data = data } ;
+                    return new Result(message, args) { Data = data };
             }
         }
     }
@@ -133,7 +133,7 @@ namespace PhotoOrganizer.Core
         /// Returns the path to the in-use config file
         /// </summary>
         public static string ConfigPath { get { return Path.Combine(DataDirectory, DirectoriesFileName); } }
-        
+
         /// <summary>
         /// Initializes access to save data files
         /// </summary>
@@ -317,7 +317,7 @@ namespace PhotoOrganizer.Core
             {
                 reader?.Close();
             }
-            
+
 
             return Result.Success();
         }
@@ -588,8 +588,201 @@ namespace PhotoOrganizer.Core
         /// <returns>A Result indicating whether the operation was successful</returns>
         public static Result AddScheme(DirectoryScheme scheme)
         {
+            if (File.Exists(SchemesFilePath))
+            {
+                foreach (string line in File.ReadAllLines(SchemesFilePath))
+                {
+                    DirectoryScheme found;
+                    if (DirectoryScheme.TryParse(line, out found) &&
+                        (found.Name == scheme.Name) || (found.FormatString == scheme.FormatString))
+                    {
+                        return Result.Failure("Already have a scheme for {0}", scheme.Name);
+                    }
+                }
+            }
 
-            throw new NotImplementedException();
+            // Write it
+            try
+            {
+                File.AppendAllText(DirectoriesFilePath, scheme.ToString());
+                return Result.Success();
+            }
+            catch
+            {
+                return Result.Failure("Error occured during file write");
+            }
+        }
+
+        /// <summary>
+        /// Lists all DirectorySchemes in the save file. Reading stops at the first
+        /// invalid line, or at the end of the file.
+        /// </summary>
+        /// <returns>A Successful result if all schemes listed, else a Failure result.</returns>
+        public static Result ListSchemes()
+        {
+            int lineNum = 1;
+            StreamReader reader = null;
+            try
+            {
+                reader = File.OpenText(SaveData.SchemesFilePath);
+
+                while (!reader.EndOfStream)
+                {
+                    string line = reader.ReadLine();
+
+                    // Skip comments and empty lines
+                    if (String.IsNullOrEmpty(line) || line.StartsWith('#'))
+                    {
+                        continue;
+                    }
+
+                    DirectoryScheme scheme;
+                    if (!DirectoryScheme.TryParse(line, out scheme))
+                    {
+                        return Result.Failure("Failed to parse scheme on line {0}", lineNum);
+                    }
+                    else
+                    {
+                        lineNum++;
+                        Console.WriteLine(scheme.ToString());
+                    }
+                }
+            }
+            finally
+            {
+                reader?.Close();
+            }
+
+
+            return Result.Success();
+        }
+
+        /// <summary>
+        /// Removes the given Scheme from the save file
+        /// </summary>
+        /// <param name="scheme">Scheme to remove from the file</param>
+        /// <returns></returns>
+        public static Result RemoveScheme(DirectoryScheme scheme)
+        {
+            bool foundQuery = false;
+            // Exit on obvious errors, such as unexpected arguments
+            if (scheme == null)
+            {
+                throw new ArgumentNullException();
+            }
+
+            // Look for it
+            StreamReader reader = File.OpenText(SaveData.SchemesFilePath);
+            string newContents = String.Empty;
+            int lineNumber = 1;
+            try
+            {
+                while (!reader.EndOfStream)
+                {
+                    DirectoryScheme found = null;
+                    if (!DirectoryScheme.TryParse(reader.ReadLine(), out found))
+                    {
+                        return Result.Failure("Failed to parse scheme on line {0}", lineNumber);
+                    }
+                    lineNumber++;
+
+                    // See if this rec we are looking at matches the query given by the user
+                    if (found == scheme)
+                    {
+                        // Do not write back to file
+                        foundQuery = true;
+                    }
+                    else
+                        newContents += found.ToString();
+                }
+            }
+            finally
+            {
+                reader.Close();
+            }
+
+            // If found, then write the modified file
+            if (foundQuery)
+            {
+                try
+                {
+                    File.WriteAllText(SaveData.DirectoriesFilePath, newContents);
+                }
+                catch (IOException)
+                {
+                    return Result.Failure("IO error reading schemes file");
+                }
+                return Result.Success();
+            }
+            // Otherwise don't bother rewriting the same contents
+            else
+            {
+                return Result.Failure("No saved scheme named '{0}'", scheme.Name);
+            }
+        }
+
+        /// <summary>
+        /// Removes the given Scheme from the save file
+        /// </summary>
+        /// <param name="scheme">Scheme to remove from the file</param>
+        /// <returns></returns>
+        public static Result RemoveScheme(string identifier)
+        {
+            bool foundQuery = false;
+            // Exit on obvious errors, such as unexpected arguments
+            if (String.IsNullOrEmpty(identifier))
+            {
+                throw new ArgumentNullException();
+            }
+
+            // Look for it
+            StreamReader reader = File.OpenText(SaveData.SchemesFilePath);
+            string newContents = String.Empty;
+            int lineNumber = 1;
+            try
+            {
+                while (!reader.EndOfStream)
+                {
+                    DirectoryScheme found = null;
+                    if (!DirectoryScheme.TryParse(reader.ReadLine(), out found))
+                    {
+                        return Result.Failure("Failed to parse scheme on line {0}", lineNumber);
+                    }
+                    lineNumber++;
+
+                    // See if this rec we are looking at matches the query given by the user
+                    if (found.Name == identifier || found.FormatString == identifier)
+                    {
+                        // Do not write back to file
+                        foundQuery = true;
+                    }
+                    else
+                        newContents += found.ToString();
+                }
+            }
+            finally
+            {
+                reader.Close();
+            }
+
+            // If found, then write the modified file
+            if (foundQuery)
+            {
+                try
+                {
+                    File.WriteAllText(SaveData.DirectoriesFilePath, newContents);
+                }
+                catch (IOException)
+                {
+                    return Result.Failure("IO error reading schemes file");
+                }
+                return Result.Success();
+            }
+            // Otherwise don't bother rewriting the same contents
+            else
+            {
+                return Result.Failure("No saved scheme identifyable by '{0}'", identifier);
+            }
         }
     }
 }

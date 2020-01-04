@@ -297,24 +297,26 @@ namespace PhotoOrganizer
         static int Schemes(string[] args)
         {
             // Reject too few args
-            if (args.Length < 2)
+            if (args.Length < 1)
             {
                 PrintUsage();
                 return 1;
             }
 
-            switch (args[0])
+            string command = ConsumeFirst(ref args);
+
+            switch (command)
             {
                 case "add":
                     return AddScheme(args);
                 case "list":
-
-                    break;
+                    return ListSchemes(args);
                 case "remove":
 
                     break;
                 case "help":
-                    break;
+                    PrintUsage();
+                    return 0;
                 default:
                     PrintUsage();
                     return 1;
@@ -327,11 +329,51 @@ namespace PhotoOrganizer
             DirectoryScheme scheme = null;
             if (!DirectoryScheme.TryParse(args, out scheme))
             {
-                PrintUsage();
                 return 1;
             }
 
             var res = SaveData.AddScheme(scheme);
+            if (res.Successful)
+            {
+                return 0;
+            }
+            else
+            {
+                Console.WriteLine(res.Message);
+                return 1;
+            }
+        }
+
+        static int RemoveSchemes(string[] args)
+        {
+            DirectoryScheme scheme = null;
+            if (!DirectoryScheme.TryParse(args, out scheme))
+            {
+                return 1;
+            }
+
+            var res = SaveData.RemoveScheme(scheme);
+
+            if (res.Successful)
+            {
+                return 0;
+            }
+            else
+            {
+                Console.WriteLine(res.Message);
+                return 1;
+            }
+        }
+
+        static int ListSchemes(string[] args)
+        {
+            if (args.Length != 0)
+            {
+                Console.WriteLine("Expected 0 arguments, got {0}", args.Length);
+                return 1;
+            }
+
+            var res = SaveData.ListSchemes();
             if (res.Successful)
             {
                 return 0;

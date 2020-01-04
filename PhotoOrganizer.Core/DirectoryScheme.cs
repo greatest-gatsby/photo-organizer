@@ -15,6 +15,11 @@ namespace PhotoOrganizer.Core
 
         public string Description { get; set; }
 
+        public override string ToString()
+        {
+            return this.FormatString + "\t" + this.Name + "\t" + this.Description;
+        }
+
         /// <summary>
         /// Parses a DirectoryScheme from the given input string
         /// </summary>
@@ -42,7 +47,7 @@ namespace PhotoOrganizer.Core
             }
 
 
-            throw new NotImplementedException();
+            return scheme;
         }
 
         /// <summary>
