@@ -2,8 +2,8 @@ PhotographySorter helps you centralize your image collection. It can combine mul
 
 Usage typically follows this pattern:
 1. Add source directories \
-`add source D:\Art dart` \
-`add source D:\Series\Photography photgraphy`
+`directory-add -t source -d D:\Art -a dart` \
+`directory-add -t source -d D:\Series\Photography -a photgraphy`
 
 2. Add a target directory \
 `add target \\my-nas\James nas`

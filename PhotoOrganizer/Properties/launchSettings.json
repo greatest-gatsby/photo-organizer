@@ -2,7 +2,7 @@
   "profiles": {
     "PhotoOrganizer": {
       "commandName": "Project",
-      "commandLineArgs": "add source E:\\Projects\\Art"
+      "commandLineArgs": "directory-add -t source -d \"E:\\Projects\\Art\""
     }
   }
 }

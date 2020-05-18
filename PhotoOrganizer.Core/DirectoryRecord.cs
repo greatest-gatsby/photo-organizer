@@ -16,7 +16,7 @@ namespace PhotoOrganizer.Core
         {
             Type = type;
             Path = path;
-            Alias = alias;
+            Alias = String.IsNullOrEmpty(alias) ? null : alias;
         }
 
         /// <summary>

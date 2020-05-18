@@ -2,6 +2,9 @@
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
+
+using CommandLine;
+
 using PhotoOrganizer.Core;
 
 namespace PhotoOrganizer
@@ -10,49 +13,17 @@ namespace PhotoOrganizer
     {
         public static int Main(string[] args)
         {
-            // Handle empty args
-            if (args.Length == 0)
-            {
-                PrintUsage();
-                return 1;
-            }
-
-            for (int i = 0; i < args.Length; i++)
-            {
-                //Console.WriteLine("{0}\t{1}", i, args[i]);
-            }
-
-            // Extract and remove application-wide options like --config
-            args = ParseApplicationArguments(args);
-            if (args == null)
-                return 1;
-
-            string command = ConsumeFirst(ref args);
-
-            // Read command
-            switch (command)
-            {
-                case "add":
-                    return AddDirectory(args);
-                case "move":
-                    return ExecuteMove(args);
-                case "list":
-                    return ListDirectories(args);
-                case "remove":
-                    return RemoveDirectory(args);
-                case "scheme":
-                    return Schemes(args);
-
-                // 'help' should print usage but report program success
-                case "help":
-                case "--help":
-                case "h":
-                    PrintUsage();
-                    return 0;
-                default:
-                    PrintUsage();
-                    return 1;
-            }
+            var parser = new Parser(conf => {
+                conf.CaseInsensitiveEnumValues = true;
+                conf.HelpWriter = Console.Out;
+            });
+            var retvalue = parser.ParseArguments<DirectoryAddOptions, DirectoryListOptions, DirectoryRemoveOptions>(args)
+                .WithParsed<DirectoryAddOptions>(opts => AddDirectory(opts))
+                .WithParsed<DirectoryListOptions>(opts => ListDirectories(opts))
+                .WithParsed<DirectoryRemoveOptions>(opts => RemoveDirectory(opts))
+                .WithNotParsed(err => Console.WriteLine("failed"));
+            
+            return 0;
 
         }
 
@@ -144,40 +115,11 @@ namespace PhotoOrganizer
         /// Adds another directory to the watchlist
         /// </summary>
         /// <param name="args">CLI arguments used to invoke the program</param>
-        static int AddDirectory(string[] args)
+        static int AddDirectory(DirectoryAddOptions opts)
         {
-            // After command is consumed, expecting:
-            // <source | target> $path [$name]
-
-            // Verify array size
-            if (args.Length < 2)
-            {
-                Console.WriteLine("Expected 2 or 3 arguments after 'add', got {0}--did you specify directory type?", args.Length);
-                return 1;
-            }
-            else if (args.Length > 3)
-            {
-                Console.WriteLine("Expected 2 or 3 arguments after 'add', got {0}", args.Length);
-                return 1;
-            }
-
-            // Verify type
-            DirectoryType type;
-            if (!DirectoryRecord.TryParseType(args[0], out type))
-            {
-                Console.WriteLine(DirectoryRecord.WrongType(args[0]));
-                return 1;
-            }
-
             // Create record
-            DirectoryRecord record = new DirectoryRecord(type, args[1]);
-            
-            // Add alias if included
-            if (args.Length == 3)
-            {
-                record.Alias = args[2];
-            }
-
+            DirectoryRecord record = new DirectoryRecord(opts.DirType, opts.Directory, opts.Alias);
+                        
             // Attempt to save
             var result = SaveData.AddDirectory(record);
             if (result.Successful)
@@ -196,59 +138,30 @@ namespace PhotoOrganizer
         /// Prints all the directories in a nice format
         /// </summary>
         /// <param name="args"></param>
-        static int ListDirectories(string[] args)
+        static int ListDirectories(DirectoryListOptions opts)
         {
-            // After command is consumed, expecting:
-            // [source | target]
-
-            // Reject too many arguments
-            if (args.Length > 1)
+            var set = SaveData.GetDirectories(opts.DirType);
+            if (set.Successful)
             {
-                Console.WriteLine("Expected 1 optional argument after 'list', got {0}", args.Length);
-                return 1;
-            }
-            // Certain type listings
-            else if (args.Length == 1)
-            {
-                // List only those of a certain type
-                var result = SaveData.ListDirectories(args[0]);
-                if (result.Successful)
+                foreach (DirectoryRecord rec in (DirectoryRecord[])(set.Data))
                 {
-                    return 0;
-                }
-                else
-                {
-                    Console.WriteLine(result.Message);
-                    return 1;
+                    string lineTail = String.IsNullOrEmpty(rec.Alias) ? "" : "\t" + rec.Alias;
+                    Console.Write(rec.Type.ToString("g") + "\t" + rec.Path + lineTail + Environment.NewLine);
                 }
             }
-            // All types listing
-            else
-            {
-                var result = SaveData.ListDirectories();
-                if (result.Successful)
-                {
-                    return 0;
-                }
-                else
-                {
-                    Console.WriteLine(result.Message);
-                    return 1;
-                }
-            }
+            return 0;
         }
 
         /// <summary>
         /// Removes the given directory from the directories file
         /// </summary>
-        /// <param name="args">CLI args</param>
         /// <returns>Status code program should echo before exiting</returns>
-        static int RemoveDirectory(string[] args)
+        static int RemoveDirectory(DirectoryRemoveOptions opts)
         {
             // After command is consumed, expecting:
             // <$name | $path>
-
-            var result = SaveData.RemoveDirectory(args[0]);
+            string id = String.IsNullOrEmpty(opts.Alias) ? opts.Directory : opts.Alias;
+            var result = SaveData.RemoveDirectory(id);
             if (result.Successful)
             {
                 return 0;

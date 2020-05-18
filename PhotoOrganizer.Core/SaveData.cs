@@ -212,13 +212,13 @@ namespace PhotoOrganizer.Core
         /// <summary>
         /// Removes a saved place by name or path
         /// </summary>
-        /// <param name="args">CLI args containing the path or name</param>
+        /// <param name="identifier">CLI args containing the path or name</param>
         /// <returns></returns>
-        public static Result RemoveDirectory(string args)
+        public static Result RemoveDirectory(string identifier)
         {
             bool found = false;
             // Exit on obvious errors, such as unexpected arguments
-            if (String.IsNullOrEmpty(args))
+            if (String.IsNullOrEmpty(identifier))
             {
                 return Result.Failure("Expected path or name, but got empty string");
             }
@@ -241,7 +241,7 @@ namespace PhotoOrganizer.Core
                     lineNumber++;
 
                     // See if this rec we are looking at matches the query given by the user
-                    if (args == rec.Path || (!String.IsNullOrEmpty(args) && args == rec.Alias))
+                    if (identifier == rec.Path || (!String.IsNullOrEmpty(identifier) && identifier == rec.Alias))
                     {
                         // Do not write back to file
                         found = true;
@@ -262,16 +262,16 @@ namespace PhotoOrganizer.Core
                 {
                     File.WriteAllText(SaveData.DirectoriesFilePath, newContents);
                 }
-                catch (IOException)
+                catch (IOException except)
                 {
-
+                    return Result.Failure(except.ToString());
                 }
                 return Result.Success();
             }
             // Otherwise don't bother rewriting the same contents
             else
             {
-                return Result.Failure("No saved directory named '{0}'", args);
+                return Result.Failure("No saved directory named '{0}'", identifier);
             }
         }
 
@@ -279,26 +279,14 @@ namespace PhotoOrganizer.Core
         /// Lists directories of the given type. If an invalid type is given, no message or error is given.
         /// </summary>
         /// <param name="scope">One of ALL, SOURCE, or TARGET</param>
-        public static Result ListDirectories(string scope = "all")
+        public static Result ListDirectories(DirectoryType? type = null)
         {
             StreamReader reader = null;
             try
             {
                 reader = File.OpenText(SaveData.DirectoriesFilePath);
-                bool parseAll = (scope == "all") ? true : false;
 
                 // This lets us reuse that same message thrown by the parsing method
-                DirectoryType type = DirectoryType.Source;
-                try
-                {
-                    if (!parseAll)
-                        type = DirectoryRecord.ParseType(scope);
-                }
-                catch (Exception ex)
-                {
-                    return Result.Failure(ex.Message);
-                }
-
                 while (!reader.EndOfStream)
                 {
                     DirectoryRecord rec;
@@ -306,7 +294,7 @@ namespace PhotoOrganizer.Core
                     {
                         continue; // skip failed parse lines
                     }
-                    if (parseAll || type == rec.Type)
+                    if (type.HasValue && type.Value == rec.Type)
                     {
                         string lineTail = String.IsNullOrEmpty(rec.Alias) ? "" : "\t" + rec.Alias;
                         Console.Write(rec.Type.ToString("g") + "\t" + rec.Path + lineTail + Environment.NewLine);
@@ -326,22 +314,17 @@ namespace PhotoOrganizer.Core
         /// Gets DirectoryRecords for all the directories in the directories config file that match the given type
         /// </summary>
         /// <param name="scope">One of ALL, SOURCE, or TARGET</param>
-        /// <returns>An array of directory records</returns>
-        public static Result GetDirectories(string scope = "all")
+        /// <returns>An <see cref="DirectoryRecord[]"></see></returns>
+        public static Result GetDirectories(DirectoryType? type = null)
         {
             List<DirectoryRecord> records = new List<DirectoryRecord>();
             StreamReader reader = null;
             try
             {
                 reader = File.OpenText(SaveData.DirectoriesFilePath);
-                bool parseAll = (scope == "all") ? true : false;
+                bool parseAll = type == null;
 
                 // This lets us reuse that same message thrown by the parsing method
-                DirectoryType type = DirectoryType.Source;
-                if (!SourceDirectory.TryParseType(scope, out type))
-                {
-                    return null;
-                }
                 int line = 1;
                 while (!reader.EndOfStream)
                 {
