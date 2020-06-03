@@ -7,7 +7,7 @@ using PhotoOrganizer.Core;
 
 namespace PhotoOrganizer
 {
-    [Verb("directory-add", HelpText = "Configure managed directories.")]
+    [Verb("directory-add", HelpText = "Add managed directories.")]
     public class DirectoryAddOptions
     {
         [Option('t',"type", Required = true)]
@@ -17,17 +17,17 @@ namespace PhotoOrganizer
         public string Directory { get; set; }
 
         [Option('a', "alias", Required = false)]
-        public string Alias { get; set; }
+        public IEnumerable<string> Alias { get; set; }
     }
 
-    [Verb("directory-list", HelpText = "Lists managed directories.")]
+    [Verb("directory-list", HelpText = "List managed directories.")]
     public class DirectoryListOptions
     {
         [Option('t', "type", Required = false)]
         public DirectoryType? DirType { get; set; }
     }
 
-    [Verb("directory-remove", HelpText = "Removes a managed directory by path or alias.")]
+    [Verb("directory-remove", HelpText = "Remove a managed directory by path or alias.")]
     public class DirectoryRemoveOptions
     {
         [Option('d', "directory", Group = "target")]

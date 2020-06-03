@@ -47,22 +47,44 @@ namespace PhotoOrganizer.Tests
         }
 
         [Test]
-        [Description("")]
+        [Description("Adds schemes and sees if they are correctly consumed")]
         public void Add_ConsumesArgs()
         {
-            string arg_new = "scheme add \"%YYYY#\\%MM#\\%II#\"\t\"year-month\"\t\"Nests images by month, by year\"";
+            string arg_new = @"scheme-add -f %YYYY#\%MM#\%II# -a year-month2    -d Nests";
             string result = Runner.RunProgram(arg_new);
             Assert.AreEqual(String.Empty, result);
 
-            result = Runner.RunProgram("scheme list");
-            Assert.That(result.EndsWith("Nests images by month, by year", StringComparison.OrdinalIgnoreCase));
+            result = Runner.RunProgram("scheme-list");
+            Assert.That(result, Contains.Substring("nests"));
+            Assert.That(result, Contains.Substring("like no joke, this is way over the top"));
 
-            const string arg_new_descless = "scheme add %E\\%MMMM#\tSenseless scheme";
+            const string arg_new_descless = @"scheme-add -f %E\%MMMM# -a Senseless";
             result = Runner.RunProgram(arg_new_descless);
             Assert.AreEqual(String.Empty, result);
 
-            result = Runner.RunProgram("list");
-            Assert.That(result.EndsWith("Senseless scheme"));
+            result = Runner.RunProgram("scheme-list");
+            Assert.That(result, Contains.Substring("senseless"));
+        }
+
+        [Test]
+        [Description("Verifies all the schemes on-disk are written to console")]
+        public void List_DisplaysSchemes()
+        {
+            string result = Runner.RunProgram("scheme-list");
+            Assert.That(result, Contains.Substring("nests images by month, by year"));
+            Assert.That(result, Contains.Substring("like no joke, this is way over the top"));
+            Assert.That(result.Contains("failed to parse"), Is.False);
+        }
+
+        [Test]
+        public void Remove_RemovesScheme()
+        {
+            string result = Runner.RunProgram("scheme-list");
+            Assert.That(result, Contains.Substring("year-month"));
+
+            result = Runner.RunProgram("scheme-remove -a year-month");
+            Assert.That(result.Contains("year-month"), Is.False);
+
         }
     }
 }

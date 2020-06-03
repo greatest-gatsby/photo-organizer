@@ -587,7 +587,7 @@ namespace PhotoOrganizer.Core
             // Write it
             try
             {
-                File.AppendAllText(DirectoriesFilePath, scheme.ToString());
+                File.AppendAllText(SchemesFilePath, scheme.ToString() + Environment.NewLine);
                 return Result.Success();
             }
             catch
@@ -640,69 +640,6 @@ namespace PhotoOrganizer.Core
             return Result.Success();
         }
 
-        /// <summary>
-        /// Removes the given Scheme from the save file
-        /// </summary>
-        /// <param name="scheme">Scheme to remove from the file</param>
-        /// <returns></returns>
-        public static Result RemoveScheme(DirectoryScheme scheme)
-        {
-            bool foundQuery = false;
-            // Exit on obvious errors, such as unexpected arguments
-            if (scheme == null)
-            {
-                throw new ArgumentNullException();
-            }
-
-            // Look for it
-            StreamReader reader = File.OpenText(SaveData.SchemesFilePath);
-            string newContents = String.Empty;
-            int lineNumber = 1;
-            try
-            {
-                while (!reader.EndOfStream)
-                {
-                    DirectoryScheme found = null;
-                    if (!DirectoryScheme.TryParse(reader.ReadLine(), out found))
-                    {
-                        return Result.Failure("Failed to parse scheme on line {0}", lineNumber);
-                    }
-                    lineNumber++;
-
-                    // See if this rec we are looking at matches the query given by the user
-                    if (found == scheme)
-                    {
-                        // Do not write back to file
-                        foundQuery = true;
-                    }
-                    else
-                        newContents += found.ToString();
-                }
-            }
-            finally
-            {
-                reader.Close();
-            }
-
-            // If found, then write the modified file
-            if (foundQuery)
-            {
-                try
-                {
-                    File.WriteAllText(SaveData.DirectoriesFilePath, newContents);
-                }
-                catch (IOException)
-                {
-                    return Result.Failure("IO error reading schemes file");
-                }
-                return Result.Success();
-            }
-            // Otherwise don't bother rewriting the same contents
-            else
-            {
-                return Result.Failure("No saved scheme named '{0}'", scheme.Name);
-            }
-        }
 
         /// <summary>
         /// Removes the given Scheme from the save file
