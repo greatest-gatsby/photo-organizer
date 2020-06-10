@@ -17,7 +17,14 @@ namespace PhotoOrganizer.Core
 
         public override string ToString()
         {
-            return this.FormatString + "\t" + this.Name + "\t" + this.Description;
+            return this.FormatString + "\t" + this.Name + "\t" + this.Description + Environment.NewLine;
+        }
+
+        public DirectoryScheme(string format, string alias, string desc = "")
+        {
+            this.FormatString = format;
+            this.Name = alias;
+            this.Description = String.IsNullOrEmpty(desc) ? null : desc;
         }
 
         /// <summary>
@@ -37,10 +44,11 @@ namespace PhotoOrganizer.Core
                 throw new ArgumentException($"Expected 2 or 3 arguments, got {split.Length}");
             }
 
-            DirectoryScheme scheme = new DirectoryScheme();
-            scheme.FormatString = split[0];
-            scheme.Name = split[1];
-
+            DirectoryScheme scheme = new DirectoryScheme(
+                format: split[0],
+                alias: split[1]
+                );
+            
             if (split.Length == 3)
             {
                 scheme.Description = split[2];
@@ -67,10 +75,10 @@ namespace PhotoOrganizer.Core
                 throw new ArgumentException($"Expected 2 or 3 arguments, got {input.Length}");
             }
 
-            DirectoryScheme scheme = new DirectoryScheme();
-            scheme.FormatString = input[0];
-            scheme.Name = input[1];
-
+            DirectoryScheme scheme = new DirectoryScheme(
+                format: input[0],
+                alias: input[1]
+                );
             if (input.Length == 3)
             {
                 scheme.Description = input[2];

@@ -10,10 +10,10 @@ namespace PhotoOrganizer
     [Verb("directory-add", HelpText = "Add managed directories.")]
     public class DirectoryAddOptions
     {
-        [Option('t',"type", Required = true)]
+        [Option('t',"type", Required = true, HelpText = "Type of directory to add, either source or target.")]
         public DirectoryType DirType { get; set; }
 
-        [Option('d', "directory", Required = true)]
+        [Option('d', "directory", Required = true, HelpText = "Full path to directory.")]
         public string Directory { get; set; }
 
         [Option('a', "alias", Required = false)]
@@ -23,17 +23,17 @@ namespace PhotoOrganizer
     [Verb("directory-list", HelpText = "List managed directories.")]
     public class DirectoryListOptions
     {
-        [Option('t', "type", Required = false)]
+        [Option('t', "type", Required = false, HelpText = "Type of directory to show, either source or target.")]
         public DirectoryType? DirType { get; set; }
     }
 
     [Verb("directory-remove", HelpText = "Remove a managed directory by path or alias.")]
     public class DirectoryRemoveOptions
     {
-        [Option('d', "directory", Group = "target")]
+        [Option('d', "directory", Group = "target", HelpText = "Full path of directory to remove.")]
         public string Directory { get; set; }
 
-        [Option('a', "alias", Group = "target")]
+        [Option('a', "alias", Group = "target", HelpText = "Alias of directory to remove.")]
         public string Alias { get; set; }
     }
 }

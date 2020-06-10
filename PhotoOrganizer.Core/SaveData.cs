@@ -631,6 +631,10 @@ namespace PhotoOrganizer.Core
                     }
                 }
             }
+            catch (Exception ex)
+            {
+                return Result.Failure(ex.ToString());
+            }
             finally
             {
                 reader?.Close();

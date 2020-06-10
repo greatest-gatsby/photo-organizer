@@ -6,7 +6,7 @@ Usage typically follows this pattern:
 `directory-add -t source -d D:\Series\Photography -a photgraphy`
 
 2. Add a target directory \
-`add target \\my-nas\James nas`
+`directory-add -t target -d \\my-nas\James nas`
 
 3. Execute a move \
 `move dart nas`
