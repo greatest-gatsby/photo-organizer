@@ -18,6 +18,8 @@ namespace PhotoOrganizer
 
         [Option('d', "description", Required = false)]
         public string Description { get; set; }
+
+        
     }
 
     [Verb("scheme-list", HelpText = "List directory schemes.")]

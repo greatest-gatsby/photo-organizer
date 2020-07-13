@@ -12,11 +12,23 @@ namespace PhotoOrganizer.Core
     {
         protected DirectoryRecord() { }
 
-        public DirectoryRecord(DirectoryType type, string path, string alias = "")
+        public DirectoryRecord(DirectoryType type, string path, string alias = "", DirectoryScheme scheme = null)
         {
             Type = type;
             Path = path;
             Alias = String.IsNullOrEmpty(alias) ? null : alias;
+
+            if (Type == DirectoryType.Target)
+            {
+                if (scheme == null)
+                {
+                    // get default scheme
+                }
+                else
+                {
+                    Scheme = scheme;
+                }
+            }
         }
 
         /// <summary>
@@ -42,7 +54,7 @@ namespace PhotoOrganizer.Core
         /// </summary>
         /// <param name="value"></param>
         /// <returns></returns>
-        public bool IdentifiableBy(string value)
+        public bool IsIdentifiableBy(string value)
         {
             return (value == this.Alias) || (value == this.Path);
         }
@@ -51,6 +63,8 @@ namespace PhotoOrganizer.Core
         /// Shows what kind of directory this is
         /// </summary>
         public DirectoryType Type { get; protected set; }
+
+        public DirectoryScheme Scheme { get; set; }
 
         /// <summary>
         /// Constructs a string of the record in the easily parsable format
@@ -208,6 +222,29 @@ namespace PhotoOrganizer.Core
         public static string WrongType(string type)
         {
             return "Unknown directory type " + type;
+        }
+
+        /// <summary>
+        /// Gets the location for the given image based on this Directory
+        /// </summary>
+        /// <param name="img"></param>
+        /// <returns></returns>
+        public string GetNewLocation(ImageRecord img)
+        {
+            return System.IO.Path.Combine(
+                this.Path,
+                this.
+                );
+        }
+
+        /// <summary>
+        /// Gets the locations for the given images based on this Directory
+        /// </summary>
+        /// <param name="imgs"></param>
+        /// <returns></returns>
+        public string[] GetNewLocation(ImageRecord[] imgs)
+        {
+            throw new NotImplementedException();
         }
     }
 

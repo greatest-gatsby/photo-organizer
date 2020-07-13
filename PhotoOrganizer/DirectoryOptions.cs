@@ -18,6 +18,9 @@ namespace PhotoOrganizer
 
         [Option('a', "alias", Required = false)]
         public IEnumerable<string> Alias { get; set; }
+
+        [Option('s', "scheme", Required = false, HelpText = "Alias of the directory scheme to use. If none is provided, the default will be used.")]
+        public string SchemeIdentifier { get; set; }
     }
 
     [Verb("directory-list", HelpText = "List managed directories.")]
