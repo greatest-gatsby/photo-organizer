@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace PhotoOrganizer.Core
@@ -9,15 +12,29 @@ namespace PhotoOrganizer.Core
     /// </summary>
     public class DirectoryScheme
     {
+        /// <summary>
+        /// The custom format string describing the scheme's structure.
+        /// </summary>
         public string FormatString { get; set; }
 
+        /// <summary>
+        /// Human-friendly alias used to refer to this scheme.
+        /// </summary>
         public string Name { get; set; }
 
+        /// <summary>
+        /// Description for this scheme.
+        /// </summary>
         public string Description { get; set; }
 
         public override string ToString()
         {
             return this.FormatString + "\t" + this.Name + "\t" + this.Description + Environment.NewLine;
+        }
+
+        public DirectoryScheme()
+        {
+
         }
 
         public DirectoryScheme(string format, string alias, string desc = "")
@@ -125,6 +142,93 @@ namespace PhotoOrganizer.Core
                 scheme = null;
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Verifies that all the tokens in this scheme's format string are valid
+        /// and that there are no partial tokens (i.e. unclosed brackets)
+        /// </summary>
+        /// <returns></returns>
+        public bool ValidateTokens()
+        {
+            // iterate thru formatstring looking for the opening bracket
+            for (int i = 0; i < this.FormatString.Length; i++)
+            {
+                if (FormatString[i] == '{')
+                {
+                    // find end bracket
+                    int endBracket = FormatString.IndexOf('}', i);
+                    if (endBracket == -1)
+                    {
+                        // closing-bracket not found. Error.
+                        return false;
+                    }
+                    else
+                    {
+                        // closing bracket found. extract the token between them
+                        string token = FormatString.Substring(i + 1, endBracket - i);
+                        
+                        // verify token is known
+                        if (Array.IndexOf(SchemeTokens.All,token) == -1)
+                        {
+                            // token was not found in array of known tokens. Error.
+                            return false;
+                        }
+                        else
+                        {
+                            // token found. advance counter to the last char of the token.
+                            i = endBracket;
+                        }
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Get an ordered array of the segments of the new path for a given image
+        /// including replacing token keys with their corresponding values.
+        /// Consider validating the FormatString before calling this method.
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="FormatException">Throws if FormatString contains an invalid/unknown token.</exception>
+        public string[] GetPathSegments(ImageRecord imgRec)
+        {
+            string[] segments = FormatString.Split(Path.DirectorySeparatorChar);
+
+            // decode em
+            for (int i = 0; i < segments.Length; i++)
+            {
+                for (int j = 0; j < segments[i].Length; j++)
+                {
+                    int open = segments[i].IndexOf('{', j);
+                    if (open == -1)
+                    {
+                        // no open bracket, so we can continue to the next segment
+                        j = segments[i].Length; // break out of the inner loop entirely
+                        continue;
+                    }
+                    else
+                    {
+                        // contains an open bracket, so let's find the token contained within
+                        j = segments[i].IndexOf('}'); // move our inner loop to the location of our close bracket
+                        string token = segments[i].Substring(open + 1, segments[i].Length - j - 1);
+                        if (Array.BinarySearch(SchemeTokens.Stock, token) == -1)
+                        {
+                            // not a stock datetime token
+                            // TODO: implement custom tokens like photo format, resolution, orientation, etc.
+                        }
+                        else
+                        {
+                            // stock datetime token - this is easy to process
+                            segments[i] = segments[i].Replace("{" + token + "}", imgRec.File.CreationTime.ToString(token));
+                        }
+                    }
+                }
+            }
+
+            return segments;
         }
     }
 }

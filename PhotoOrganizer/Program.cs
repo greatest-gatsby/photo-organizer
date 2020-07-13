@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
@@ -28,6 +29,9 @@ namespace PhotoOrganizer
                 .WithParsed<SchemeAddOptions>(opts => AddScheme(opts))
                 .WithParsed<SchemeRemoveOptions>(opts => RemoveSchemes(opts))
                 .WithParsed<SchemeListOptions>(opts => ListSchemes(opts))
+
+                // execute
+                .WithParsed<ExecuteOptions>(opts => ExecuteMove(opts))
                 
                 // everything else is an error
                 .WithNotParsed(err => Console.WriteLine("failed"));
@@ -43,6 +47,12 @@ namespace PhotoOrganizer
         /// <param name="args">CLI arguments used to invoke the program</param>
         static int AddDirectory(DirectoryAddOptions opts)
         {
+            // verify the scheme format id if necessary
+            if (opts.DirType == DirectoryType.Target && String.IsNullOrEmpty(opts.SchemeIdentifier))
+            {
+
+            }
+
             // Create record
             DirectoryRecord record = new DirectoryRecord(opts.DirType, opts.Directory, String.Join(' ', opts.Alias));
                         
@@ -133,12 +143,7 @@ namespace PhotoOrganizer
         #region scheme
         static int AddScheme(SchemeAddOptions opts)
         {
-            DirectoryScheme scheme = new DirectoryScheme()
-            {
-                Name = opts.Alias,
-                Description = opts.Description,
-                FormatString = opts.FormatString
-            };
+            DirectoryScheme scheme = new DirectoryScheme(format: opts.FormatString, alias: opts.Alias, desc: opts.Description);
 
             var res = SaveData.AddScheme(scheme);
             if (res.Successful)
@@ -147,7 +152,6 @@ namespace PhotoOrganizer
             }
             else
             {
-                Console.WriteLine(res.Message);
                 return 1;
             }
         }
@@ -170,9 +174,14 @@ namespace PhotoOrganizer
 
         static int ListSchemes(SchemeListOptions opts)
         {
-            var res = SaveData.ListSchemes();
+            var res = SaveData.GetSchemes();
             if (res.Successful)
             {
+                var set = (List<DirectoryScheme>)res.Data;
+                foreach (var itm in set)
+                {
+                    Console.WriteLine(itm.ToString());
+                }
                 return 0;
             }
             else
@@ -180,6 +189,14 @@ namespace PhotoOrganizer
                 Console.WriteLine(res.Message);
                 return 1;
             }
+        }
+        #endregion
+
+        #region exec
+        static int ExecuteMove(ExecuteOptions opts)
+        {
+            var res = Organizer.TryMove(opts.SourceIdentifier, opts.TargetIdentifier);
+            return 0;
         }
         #endregion
     }

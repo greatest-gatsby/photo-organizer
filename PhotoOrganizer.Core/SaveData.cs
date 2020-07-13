@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Resources;
 using System.Globalization;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Xml.Linq;
 using System.Linq;
 
 using PhotoOrganizer;
+using System.Runtime.CompilerServices;
 
 namespace PhotoOrganizer.Core
 {
@@ -135,6 +138,11 @@ namespace PhotoOrganizer.Core
         public static string ConfigPath { get { return Path.Combine(DataDirectory, DirectoriesFileName); } }
 
         /// <summary>
+        /// All registered directories
+        /// </summary>
+        public static DirectoryRecord[] Directories { get; set; }
+
+        /// <summary>
         /// Initializes access to save data files
         /// </summary>
         static SaveData()
@@ -174,6 +182,22 @@ namespace PhotoOrganizer.Core
                         throw new ApplicationException("Could not determine a writable path for config files", ex);
                     }
                 }
+            }
+
+            // now load directories
+            using (var reader = File.OpenText(DirectoriesFilePath))
+            {
+                List<DirectoryRecord> recs = new List<DirectoryRecord>();
+                while (!reader.EndOfStream)
+                {
+                    string line = reader.ReadLine();
+                    DirectoryRecord rec;
+                    if (DirectoryRecord.TryParse(line, out rec))
+                    {
+                        recs.Add(rec);
+                    }
+                }
+                Directories = recs.ToArray();
             }
         }
 
@@ -457,6 +481,17 @@ namespace PhotoOrganizer.Core
         }
 
         /// <summary>
+        /// Verifies that the given identifier corresponds to directories registed in the application.
+        /// If the identifier is valid, the Directory Record is returned. If not, null is returned.
+        /// </summary>
+        /// <param name="id">Identifier of the record to validate</param>
+        /// <returns>The Directory Record if valid, else null</returns>
+        public static DirectoryRecord ValidateDirectoryIdentifier(string id)
+        {
+            return Directories.FirstOrDefault(r => r.IsIdentifiableBy(id));
+        }
+
+        /// <summary>
         /// Verifies that all the identifiers in <paramref name="input"/> are stored in the config file.
         /// If all are, <see cref="Result.Successful"/> is TRUE and <see cref="Result.Data"/> is populated
         /// with the list of saved, matching DirectoryRecords, else it is FALSE and <see cref="Result.Data"/>
@@ -565,85 +600,49 @@ namespace PhotoOrganizer.Core
         }
 
         /// <summary>
-        /// Adds a DirectoryScheme to the saved schemes file
+        /// Lists all DirectorySchemes in the save file. Reading stops at the first
+        /// invalid line, or at the end of the file.
         /// </summary>
-        /// <param name="scheme">Scheme object to save</param>
-        /// <returns>A Result indicating whether the operation was successful</returns>
-        public static Result AddScheme(DirectoryScheme scheme)
+        /// <returns>A Successful result with a List`DirectoryRecord` in Data, else a Failure result.</returns>
+        public static Result GetSchemes()
         {
             if (File.Exists(SchemesFilePath))
             {
-                foreach (string line in File.ReadAllLines(SchemesFilePath))
-                {
-                    DirectoryScheme found;
-                    if (DirectoryScheme.TryParse(line, out found) &&
-                        (found.Name == scheme.Name) || (found.FormatString == scheme.FormatString))
-                    {
-                        return Result.Failure("Already have a scheme for {0}", scheme.Name);
-                    }
-                }
+                return Result.Success(JsonSerializer.Deserialize<List<DirectoryScheme>>(File.ReadAllText(SchemesFilePath)));
             }
-
-            // Write it
-            try
+            else
             {
-                File.AppendAllText(SchemesFilePath, scheme.ToString() + Environment.NewLine);
-                return Result.Success();
-            }
-            catch
-            {
-                return Result.Failure("Error occured during file write");
+                return Result.Success(new List<DirectoryScheme>());
             }
         }
 
         /// <summary>
-        /// Lists all DirectorySchemes in the save file. Reading stops at the first
-        /// invalid line, or at the end of the file.
+        /// Adds the given DirectoryScheme to the schemes file
         /// </summary>
-        /// <returns>A Successful result if all schemes listed, else a Failure result.</returns>
-        public static Result ListSchemes()
+        /// <param name="scheme"></param>
+        /// <returns></returns>
+        public static Result AddScheme(DirectoryScheme scheme)
         {
-            int lineNum = 1;
-            StreamReader reader = null;
-            try
+            List<DirectoryScheme> collection = null;
+            if (File.Exists(SchemesFilePath))
             {
-                reader = File.OpenText(SaveData.SchemesFilePath);
-
-                while (!reader.EndOfStream)
+                // verify there is no saved scheme with the same name or format string
+                collection = JsonSerializer.Deserialize<List<DirectoryScheme>>(File.ReadAllText(SchemesFilePath));
+                if (collection.Any(s => s.FormatString == scheme.FormatString || s.Name == scheme.Name))
                 {
-                    string line = reader.ReadLine();
-
-                    // Skip comments and empty lines
-                    if (String.IsNullOrEmpty(line) || line.StartsWith('#'))
-                    {
-                        continue;
-                    }
-
-                    DirectoryScheme scheme;
-                    if (!DirectoryScheme.TryParse(line, out scheme))
-                    {
-                        return Result.Failure("Failed to parse scheme on line {0}", lineNum);
-                    }
-                    else
-                    {
-                        lineNum++;
-                        Console.WriteLine(scheme.ToString());
-                    }
+                    return Result.Failure("Already have a scheme with the same format or name");
                 }
             }
-            catch (Exception ex)
+            else
             {
-                return Result.Failure(ex.ToString());
-            }
-            finally
-            {
-                reader?.Close();
+                collection = new List<DirectoryScheme>();
             }
 
-
+            // add this scheme and write all to disk
+            collection.Add(scheme);
+            File.WriteAllText(SchemesFilePath, JsonSerializer.Serialize<List<DirectoryScheme>>(collection));
             return Result.Success();
         }
-
 
         /// <summary>
         /// Removes the given Scheme from the save file
@@ -652,60 +651,25 @@ namespace PhotoOrganizer.Core
         /// <returns></returns>
         public static Result RemoveScheme(string identifier)
         {
-            bool foundQuery = false;
-            // Exit on obvious errors, such as unexpected arguments
-            if (String.IsNullOrEmpty(identifier))
+            if (File.Exists(SchemesFilePath))
             {
-                throw new ArgumentNullException();
-            }
-
-            // Look for it
-            StreamReader reader = File.OpenText(SaveData.SchemesFilePath);
-            string newContents = String.Empty;
-            int lineNumber = 1;
-            try
-            {
-                while (!reader.EndOfStream)
+                var schemes = JsonSerializer.Deserialize<List<DirectoryScheme>>(File.ReadAllText(SchemesFilePath));
+                int loc = schemes.FindIndex(s => s.FormatString == identifier || s.Name == identifier);
+                if (loc == -1)
                 {
-                    DirectoryScheme found = null;
-                    if (!DirectoryScheme.TryParse(reader.ReadLine(), out found))
-                    {
-                        return Result.Failure("Failed to parse scheme on line {0}", lineNumber);
-                    }
-                    lineNumber++;
-
-                    // See if this rec we are looking at matches the query given by the user
-                    if (found.Name == identifier || found.FormatString == identifier)
-                    {
-                        // Do not write back to file
-                        foundQuery = true;
-                    }
-                    else
-                        newContents += found.ToString();
+                    // specified scheme not found
+                    return Result.Failure("Specified scheme was not removed because it could not be found");
+                }
+                else
+                {
+                    schemes.RemoveAt(loc);
+                    File.WriteAllText(SchemesFilePath, JsonSerializer.Serialize<List<DirectoryScheme>>(schemes));
+                    return Result.Success();
                 }
             }
-            finally
-            {
-                reader.Close();
-            }
-
-            // If found, then write the modified file
-            if (foundQuery)
-            {
-                try
-                {
-                    File.WriteAllText(SaveData.DirectoriesFilePath, newContents);
-                }
-                catch (IOException)
-                {
-                    return Result.Failure("IO error reading schemes file");
-                }
-                return Result.Success();
-            }
-            // Otherwise don't bother rewriting the same contents
             else
             {
-                return Result.Failure("No saved scheme identifyable by '{0}'", identifier);
+                return Result.Failure("Schemes file is empty - cannot remove the specified scheme");
             }
         }
     }
