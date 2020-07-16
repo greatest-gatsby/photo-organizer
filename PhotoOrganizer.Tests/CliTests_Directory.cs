@@ -2,6 +2,8 @@
 using System.IO;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 using PhotoOrganizer.Core;
 using NUnit.Framework;
@@ -24,8 +26,13 @@ namespace PhotoOrganizer.Tests
             testDataPath = Path.Combine(Environment.CurrentDirectory, "test" + Path.DirectorySeparatorChar);
             Directory.CreateDirectory(testDataPath);
 
+            DirectoryRecord d1 = new DirectoryRecord(DirectoryType.Source, "C:\\Users\\Me\\Art", "local-art");
+            DirectoryRecord d2 = new DirectoryRecord(DirectoryType.Source, "D:\\Photography");
+            DirectoryRecord d3 = new DirectoryRecord(DirectoryType.Target, "E:\\Backup\\Images", "big-disk");
+            var list = new DirectoryRecord[] { d1, d2, d3 };
+
             // Write files
-            File.WriteAllText(Path.Combine(testDataPath, "directories"), Directories);
+            File.WriteAllText(Path.Combine(testDataPath, "directories"), JsonSerializer.Serialize<DirectoryRecord[]>(list));
 
             // Update SaveData
             SaveData.DataDirectory = testDataPath;

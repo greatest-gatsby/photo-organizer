@@ -204,33 +204,23 @@ namespace PhotoOrganizer.Core
         /// <summary>
         /// Adds the given record to the Directories file
         /// </summary>
-        /// <param name="category">Category of data to append</param>   
-        /// <param name="element">XElement to insert in file</param>
+        /// <param name="record">DirectoryRecord to save to disk</param>
         public static Result AddDirectory(DirectoryRecord record)
         {
-            // Check for duplicates
+            var list = new List<DirectoryRecord>();
             if (File.Exists(DirectoriesFilePath))
             {
-                foreach (string line in File.ReadAllLines(DirectoriesFilePath))
-                {
-                    DirectoryRecord found;
-                    if (DirectoryRecord.TryParse(line, out found) && found.Path == record.Path)
-                    {
-                        return Result.Failure("Already have a record for {0}", found.Identifier);
-                    }
-                }
+                list = JsonSerializer.Deserialize<List<DirectoryRecord>>(File.ReadAllText(DirectoriesFilePath));
             }
+            else
+            {
+                list = new List<DirectoryRecord>();
+            }
+            
+            list.Add(record);
+            File.WriteAllText(DirectoriesFilePath, JsonSerializer.Serialize<List<DirectoryRecord>>(list));
 
-            // Write it
-            try
-            {
-                File.AppendAllText(DirectoriesFilePath, record.ToString());
-                return Result.Success();
-            }
-            catch
-            {
-                return Result.Failure("Error occured during file write");
-            }
+            return Result.Success();
         }
 
         /// <summary>
@@ -240,98 +230,27 @@ namespace PhotoOrganizer.Core
         /// <returns></returns>
         public static Result RemoveDirectory(string identifier)
         {
-            bool found = false;
-            // Exit on obvious errors, such as unexpected arguments
-            if (String.IsNullOrEmpty(identifier))
+            if (File.Exists(DirectoriesFilePath))
             {
-                return Result.Failure("Expected path or name, but got empty string");
-            }
-
-            // Look for it
-            StreamReader reader = File.OpenText(SaveData.DirectoriesFilePath);
-            string newContents = String.Empty;
-            int lineNumber = 1;
-            try
-            {
-                while (!reader.EndOfStream)
+                var list = JsonSerializer.Deserialize<List<DirectoryRecord>>(File.ReadAllText(DirectoriesFilePath));
+                int loc = list.FindIndex(dr => dr.IsIdentifiableBy(identifier));
+                if (loc == -1)
                 {
-                    DirectoryRecord rec = null;
-                    if (!DirectoryRecord.TryParse(reader.ReadLine(), out rec))
-                    {
-                        Console.WriteLine("Failed to parse directory on line {0}", lineNumber);
-                        lineNumber++;
-                        continue;
-                    }
-                    lineNumber++;
-
-                    // See if this rec we are looking at matches the query given by the user
-                    if (identifier == rec.Path || (!String.IsNullOrEmpty(identifier) && identifier == rec.Alias))
-                    {
-                        // Do not write back to file
-                        found = true;
-                    }
-                    else
-                        newContents += rec.ToString();
+                    // no directoryrecord found with that identifier
+                    return Result.Failure("Could not remove directory because it was not found");
+                }
+                else
+                {
+                    // found itttt
+                    list.RemoveAt(loc);
+                    File.WriteAllText(DirectoriesFilePath, JsonSerializer.Serialize<List<DirectoryRecord>>(list));
+                    return Result.Success();
                 }
             }
-            finally
-            {
-                reader.Close();
-            }
-
-            // If found, then write the modified file
-            if (found)
-            {
-                try
-                {
-                    File.WriteAllText(SaveData.DirectoriesFilePath, newContents);
-                }
-                catch (IOException except)
-                {
-                    return Result.Failure(except.ToString());
-                }
-                return Result.Success();
-            }
-            // Otherwise don't bother rewriting the same contents
             else
             {
-                return Result.Failure("No saved directory named '{0}'", identifier);
+                return Result.Failure("Could not remove directory because no save data was found");
             }
-        }
-
-        /// <summary>
-        /// Lists directories of the given type. If an invalid type is given, no message or error is given.
-        /// </summary>
-        /// <param name="scope">One of ALL, SOURCE, or TARGET</param>
-        public static Result ListDirectories(DirectoryType? type = null)
-        {
-            StreamReader reader = null;
-            try
-            {
-                reader = File.OpenText(SaveData.DirectoriesFilePath);
-
-                // This lets us reuse that same message thrown by the parsing method
-                while (!reader.EndOfStream)
-                {
-                    DirectoryRecord rec;
-                    if (!DirectoryRecord.TryParse(reader.ReadLine(), out rec))
-                    {
-                        continue; // skip failed parse lines
-                    }
-                    if (type.HasValue && type.Value == rec.Type)
-                    {
-                        string lineTail = String.IsNullOrEmpty(rec.Alias) ? "" : "\t" + rec.Alias;
-                        Console.Write(rec.Type.ToString("g") + "\t" + rec.Path + lineTail + Environment.NewLine);
-                    }
-                }
-            }
-            finally
-            {
-                reader?.Close();
-            }
-
-
-            return Result.Success();
         }
 
         /// <summary>
@@ -341,37 +260,22 @@ namespace PhotoOrganizer.Core
         /// <returns>An <see cref="DirectoryRecord[]"></see></returns>
         public static Result GetDirectories(DirectoryType? type = null)
         {
-            List<DirectoryRecord> records = new List<DirectoryRecord>();
-            StreamReader reader = null;
-            try
+            if (File.Exists(DirectoriesFilePath))
             {
-                reader = File.OpenText(SaveData.DirectoriesFilePath);
-                bool parseAll = type == null;
-
-                // This lets us reuse that same message thrown by the parsing method
-                int line = 1;
-                while (!reader.EndOfStream)
+                string content = File.ReadAllText(DirectoriesFilePath);
+                if (String.IsNullOrEmpty(content))
                 {
-                    DirectoryRecord rec;
-                    // cancel at the first failed parse
-                    if (!DirectoryRecord.TryParse(reader.ReadLine(), out rec))
-                    {
-                        return Result.Failure("Failed to parse directory on line {0}", line);
-                    }
-                    // only add if of the requested type
-                    else if (parseAll || type == rec.Type)
-                    {
-                        records.Add(rec);
-                    }
+                    return Result.Success(new DirectoryRecord[0]);
+                }
+                else
+                {
+                    return Result.Success(JsonSerializer.Deserialize<DirectoryRecord[]>(content));
                 }
             }
-            finally
+            else
             {
-                reader?.Close();
+                return Result.Success(new DirectoryRecord[0]);
             }
-
-
-            return Result.Success(records.ToArray());
         }
 
         /// <summary>

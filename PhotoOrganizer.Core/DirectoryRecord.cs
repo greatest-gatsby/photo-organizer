@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Serialization;
 using System.Xml.Linq;
+using System.Linq;
 
 namespace PhotoOrganizer.Core
 {
@@ -62,7 +63,7 @@ namespace PhotoOrganizer.Core
         /// <summary>
         /// Shows what kind of directory this is
         /// </summary>
-        public DirectoryType Type { get; protected set; }
+        public DirectoryType Type { get; set; }
 
         public DirectoryScheme Scheme { get; set; }
 
@@ -232,8 +233,7 @@ namespace PhotoOrganizer.Core
         public string GetNewLocation(ImageRecord img)
         {
             return System.IO.Path.Combine(
-                this.Path,
-                this.
+                this.Scheme.GetPathSegments(img, this.Path).ToArray()
                 );
         }
 

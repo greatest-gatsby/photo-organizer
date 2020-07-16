@@ -1,7 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Collections.Generic;
-using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 using NUnit.Framework;
 
@@ -13,8 +14,8 @@ namespace PhotoOrganizer.Tests
     {
         static string testDataPath = String.Empty;
 
-        public static string Schemes = "%Y\\%M\\%II#\tyear-month\tNests images by month, by year" + Environment.NewLine
-            + "%Y\\%MMM#\\%D\\%E\\$II#\tOverly organized\tLike no joke, this is way over the top" + Environment.NewLine;
+        public static string Schemes = "{Y}\\{M}\\{II}\tyear-month\tNests images by month, by year" + Environment.NewLine
+            + "{Y}\\{MMM}\\{D}\\{E}\\{II}\tOverly organized\tLike no joke, this is way over the top" + Environment.NewLine;
 
         [SetUp]
         public static void WriteTestData()
@@ -23,8 +24,12 @@ namespace PhotoOrganizer.Tests
             testDataPath = Path.Combine(Environment.CurrentDirectory, "test" + Path.DirectorySeparatorChar);
             Directory.CreateDirectory(testDataPath);
 
+            DirectoryScheme d1 = new DirectoryScheme("{Y}\\{M}\\{II}", "year-month", "Nests images by month, by year");
+            DirectoryScheme d2 = new DirectoryScheme("{Y}\\{MMM}\\{D}\\{E}\\{II}", "Overly organized", "Like no joke, this is way over the top");
+            var list = new List<DirectoryScheme>() { d1, d2 };
+
             // Write files
-            File.WriteAllText(Path.Combine(testDataPath, SaveData.SchemesFileName), Schemes);
+            File.WriteAllText(Path.Combine(testDataPath, SaveData.SchemesFileName), JsonSerializer.Serialize<List<DirectoryScheme>>(list));
 
             // Update SaveData
             SaveData.DataDirectory = testDataPath;
@@ -50,7 +55,7 @@ namespace PhotoOrganizer.Tests
         [Description("Adds schemes and sees if they are correctly consumed")]
         public void Add_ConsumesArgs()
         {
-            string arg_new = @"scheme-add -f %YYYY#\%MM#\%II# -a year-month2    -d Nests";
+            string arg_new = @"scheme-add -f {YYYY}\{MM}\{II} -a year-month2    -d Nests";
             string result = Runner.RunProgram(arg_new);
             Assert.AreEqual(String.Empty, result);
 
@@ -58,7 +63,7 @@ namespace PhotoOrganizer.Tests
             Assert.That(result, Contains.Substring("nests"));
             Assert.That(result, Contains.Substring("like no joke, this is way over the top"));
 
-            const string arg_new_descless = @"scheme-add -f %E\%MMMM# -a Senseless";
+            const string arg_new_descless = @"scheme-add -f {E}\{MMMM} -a Senseless";
             result = Runner.RunProgram(arg_new_descless);
             Assert.AreEqual(String.Empty, result);
 

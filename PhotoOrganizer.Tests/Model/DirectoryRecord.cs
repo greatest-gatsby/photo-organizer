@@ -103,10 +103,10 @@ namespace PhotoOrganizer.Tests
         public void DirectoryRecord_IdentifiableBy_Matches()
         {
             DirectoryRecord rec1 = new DirectoryRecord(DirectoryType.Source, "/boycott/china", "Truth");
-            Assert.IsTrue(rec1.IdentifiableBy("Truth"), "Failed to match Alias");
-            Assert.IsTrue(rec1.IdentifiableBy("/boycott/china"), "Failed to match Path");
-            Assert.IsFalse(rec1.IdentifiableBy("truth"), "Accepted case-insensitive query, which is N.E.B.");
-            Assert.IsFalse(rec1.IdentifiableBy("china"), "Accepted a partial match, which is N.E.B.");
+            Assert.IsTrue(rec1.IsIdentifiableBy("Truth"), "Failed to match Alias");
+            Assert.IsTrue(rec1.IsIdentifiableBy("/boycott/china"), "Failed to match Path");
+            Assert.IsFalse(rec1.IsIdentifiableBy("truth"), "Accepted case-insensitive query, which is N.E.B.");
+            Assert.IsFalse(rec1.IsIdentifiableBy("china"), "Accepted a partial match, which is N.E.B.");
         }
     }
 
