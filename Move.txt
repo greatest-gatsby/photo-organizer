@@ -1,3 +1,0 @@
-Operations required to move:
-
--- Verify valid sources, destinations

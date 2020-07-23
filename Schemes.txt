@@ -1,3 +1,0 @@
-\{Y}\{M}\{II}	year-month	month-by-year
-\{Y}\{M}\{E}\{II}	year-month-format	month-by-year, then by format
-\{YYYY}-{M} ({MMM})\{II}	all-months

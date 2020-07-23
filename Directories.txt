@@ -1,2 +1,0 @@
-source	G:\Projects\Art	photo-local
-source	G:\Projects\Series	series-local
