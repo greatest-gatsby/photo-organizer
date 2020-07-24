@@ -1,0 +1,18 @@
+image: mcr.microsoft.com/dotnet/core/sdk:3.1
+
+stages:
+    - build
+    - test
+
+build:
+    stage: build
+    script:
+        - "cd PhotoOrganizer.Test"
+        - "dotnet build"
+    tags: [build] 
+        
+deploy:
+    stage: test
+    script:
+        - "cd dotnet test"
+    tags: [test]
