@@ -193,7 +193,15 @@ namespace PhotoOrganizer.Core
         /// </summary>
         public static void ReadDirectoriesFile()
         {
-            Directories = JsonSerializer.Deserialize<DirectoryRecord[]>(File.ReadAllText(DirectoriesFilePath));
+            string content = File.ReadAllText(DirectoriesFilePath);
+            if (String.IsNullOrEmpty(content))
+            {
+                Directories = new DirectoryRecord[0];
+            }
+            else
+            {
+                Directories = JsonSerializer.Deserialize<DirectoryRecord[]>(content);
+            }
         }
 
         /// <summary>
