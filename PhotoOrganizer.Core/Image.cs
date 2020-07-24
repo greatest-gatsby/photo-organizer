@@ -8,14 +8,14 @@ namespace PhotoOrganizer.Core
     [Serializable]
     public class ImageRecord
     {
-        public String FileName { get { return Name + Extension; } }
-        public String Extension { get; set; }
-        public String Name { get; set; }
+        public FileInfo File { get; set; }
 
         public ImageRecord(FileInfo info)
         {
-            Name = info.Name;
-            Extension = info.Extension;
+            File = info;
         }
+
+        // TODO - Add method to determine if '_MG_4567' is the same as 'IMG_4567'
+        // TODO - Recognize versioning inside the name
     }
 }

@@ -19,7 +19,8 @@ namespace PhotoOrganizer
                 conf.HelpWriter = Console.Out;
             });
             var retvalue = parser.ParseArguments<DirectoryAddOptions, DirectoryListOptions, DirectoryRemoveOptions,
-                                                 SchemeAddOptions, SchemeListOptions, SchemeRemoveOptions>(args)
+                                                 SchemeAddOptions, SchemeListOptions, SchemeRemoveOptions,
+                                                 ExecuteMoveOptions>(args)
                 // directory funcs
                 .WithParsed<DirectoryAddOptions>(opts => AddDirectory(opts))
                 .WithParsed<DirectoryListOptions>(opts => ListDirectories(opts))
@@ -31,7 +32,7 @@ namespace PhotoOrganizer
                 .WithParsed<SchemeListOptions>(opts => ListSchemes(opts))
 
                 // execute
-                .WithParsed<ExecuteOptions>(opts => ExecuteMove(opts))
+                .WithParsed<ExecuteMoveOptions>(opts => ExecuteMove(opts))
                 
                 // everything else is an error
                 .WithNotParsed(err => Console.WriteLine("failed"));
@@ -48,7 +49,7 @@ namespace PhotoOrganizer
         static int AddDirectory(DirectoryAddOptions opts)
         {
             // verify the scheme format id if necessary
-            if (opts.DirType == DirectoryType.Target && String.IsNullOrEmpty(opts.SchemeIdentifier))
+            if (opts.DirType == DirectoryType.Target && !String.IsNullOrEmpty(opts.SchemeIdentifier))
             {
 
             }
@@ -193,10 +194,18 @@ namespace PhotoOrganizer
         #endregion
 
         #region exec
-        static int ExecuteMove(ExecuteOptions opts)
+        static int ExecuteMove(ExecuteMoveOptions opts)
         {
-            var res = Organizer.TryMove(opts.SourceIdentifier, opts.TargetIdentifier);
-            return 0;
+            var res = Organizer.TryMove(opts.SourceIdentifier.Trim('"'), opts.TargetIdentifier.Trim('"'));
+            if (res.Successful)
+            {
+                return 0;
+            }
+            else
+            {
+                Console.WriteLine(res.Message);
+                return 1;
+            }
         }
         #endregion
     }

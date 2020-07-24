@@ -53,7 +53,7 @@ namespace PhotoOrganizer.Tests
 
         [Test]
         [Description("Adds schemes and sees if they are correctly consumed")]
-        public void Add_ConsumesArgs()
+        public void Add_ConsumesArgs_Desc()
         {
             string arg_new = @"scheme-add -f {YYYY}\{MM}\{II} -a year-month2    -d Nests";
             string result = Runner.RunProgram(arg_new);
@@ -61,10 +61,15 @@ namespace PhotoOrganizer.Tests
 
             result = Runner.RunProgram("scheme-list");
             Assert.That(result, Contains.Substring("nests"));
-            Assert.That(result, Contains.Substring("like no joke, this is way over the top"));
+            Assert.That(result, Contains.Substring("like no joke, this is way over the top"));            
+        }
 
+        [Test]
+        [Description("Adds a scheme with no description to see if they are correctly consumed")]
+        public void Add_ConsumeArgs_NoDesc()
+        {
             const string arg_new_descless = @"scheme-add -f {E}\{MMMM} -a Senseless";
-            result = Runner.RunProgram(arg_new_descless);
+            string result = Runner.RunProgram(arg_new_descless);
             Assert.AreEqual(String.Empty, result);
 
             result = Runner.RunProgram("scheme-list");
@@ -82,6 +87,7 @@ namespace PhotoOrganizer.Tests
         }
 
         [Test]
+        [Description("Verifies that invoking the remove command actually removes the scheme.")]
         public void Remove_RemovesScheme()
         {
             string result = Runner.RunProgram("scheme-list");

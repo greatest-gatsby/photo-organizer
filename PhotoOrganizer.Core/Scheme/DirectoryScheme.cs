@@ -192,14 +192,23 @@ namespace PhotoOrganizer.Core
         /// Consider validating the FormatString before calling this method.
         /// </summary>
         /// <returns></returns>
+        /// <param name="basePath">The string of the path that preceedes these segments. If empty, you must combine the paths manually.</param>
+        /// <param name="imgRec">Image to be relocated</param>
         /// <exception cref="FormatException">Throws if FormatString contains an invalid/unknown token.</exception>
-        public string[] GetPathSegments(ImageRecord imgRec)
+        public string[] GetPathSegments(ImageRecord imgRec, string basePath = "")
         {
-            string[] segments = FormatString.Split(Path.DirectorySeparatorChar);
+            // put BasePath at the first element if it is not null or empty
+            string[] segments = String.IsNullOrEmpty(basePath) ? 
+                    FormatString.Split(Path.DirectorySeparatorChar) :
+                    FormatString.Split(Path.DirectorySeparatorChar).Prepend(basePath).ToArray();
 
             // decode em
             for (int i = 0; i < segments.Length; i++)
             {
+                // ignore the first cell if it's the basePath
+                if (!String.IsNullOrEmpty(basePath) && i == 0)
+                    continue;
+
                 for (int j = 0; j < segments[i].Length; j++)
                 {
                     int open = segments[i].IndexOf('{', j);

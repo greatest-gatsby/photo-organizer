@@ -232,9 +232,17 @@ namespace PhotoOrganizer.Core
         /// <returns></returns>
         public string GetNewLocation(ImageRecord img)
         {
-            return System.IO.Path.Combine(
-                this.Scheme.GetPathSegments(img, this.Path).ToArray()
+            if (this.Scheme == null)
+            {
+                return System.IO.Path.Combine(this.Path, img.File.Name);
+            }
+            else
+            {
+                return System.IO.Path.Combine(
+                    this.Scheme.GetPathSegments(img, this.Path).ToArray()
                 );
+            }
+            
         }
 
         /// <summary>

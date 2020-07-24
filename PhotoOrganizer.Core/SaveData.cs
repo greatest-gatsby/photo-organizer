@@ -184,21 +184,16 @@ namespace PhotoOrganizer.Core
                 }
             }
 
-            // now load directories
-            using (var reader = File.OpenText(DirectoriesFilePath))
-            {
-                List<DirectoryRecord> recs = new List<DirectoryRecord>();
-                while (!reader.EndOfStream)
-                {
-                    string line = reader.ReadLine();
-                    DirectoryRecord rec;
-                    if (DirectoryRecord.TryParse(line, out rec))
-                    {
-                        recs.Add(rec);
-                    }
-                }
-                Directories = recs.ToArray();
-            }
+            ReadDirectoriesFile();
+        }
+
+        /// <summary>
+        /// Reloads all in-memory directories from the directories file. Calling this method manually
+        /// is usually not needed.
+        /// </summary>
+        public static void ReadDirectoriesFile()
+        {
+            Directories = JsonSerializer.Deserialize<DirectoryRecord[]>(File.ReadAllText(DirectoriesFilePath));
         }
 
         /// <summary>
@@ -210,7 +205,11 @@ namespace PhotoOrganizer.Core
             var list = new List<DirectoryRecord>();
             if (File.Exists(DirectoriesFilePath))
             {
-                list = JsonSerializer.Deserialize<List<DirectoryRecord>>(File.ReadAllText(DirectoriesFilePath));
+                string content = File.ReadAllText(DirectoriesFilePath);
+                if (!String.IsNullOrEmpty(content))
+                {
+                    list = JsonSerializer.Deserialize<List<DirectoryRecord>>(content);
+                }
             }
             else
             {
@@ -218,7 +217,11 @@ namespace PhotoOrganizer.Core
             }
             
             list.Add(record);
-            File.WriteAllText(DirectoriesFilePath, JsonSerializer.Serialize<List<DirectoryRecord>>(list));
+            foreach (var d in list)
+            {
+                Directories.Append(d);
+            }
+            File.WriteAllText(DirectoriesFilePath, JsonSerializer.Serialize<DirectoryRecord[]>(list.ToArray()));
 
             return Result.Success();
         }
@@ -244,6 +247,10 @@ namespace PhotoOrganizer.Core
                     // found itttt
                     list.RemoveAt(loc);
                     File.WriteAllText(DirectoriesFilePath, JsonSerializer.Serialize<List<DirectoryRecord>>(list));
+
+                    // stuff
+                    Directories = Directories.Where(d => !d.IsIdentifiableBy(identifier)).ToArray();
+
                     return Result.Success();
                 }
             }
