@@ -49,7 +49,7 @@ namespace PhotoOrganizer.Tests
             SaveData.ReadDirectoriesFile();
         }
 
-        [OneTimeTearDown]
+        [TearDown]
         public static void RemoveTestDataEvery()
         {
             foreach (var file in targetDir.GetFiles())
@@ -97,5 +97,7 @@ namespace PhotoOrganizer.Tests
                     Assert.Fail("Encountered unexpected image {0}", img.FullName);
             }
         }
+
+        
     }
 }
