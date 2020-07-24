@@ -14,5 +14,6 @@ build:
 deploy:
     stage: test
     script:
+        - "cd PhotoOrganizer.Tests"
         - "dotnet test"
     tags: [test]
