@@ -21,6 +21,8 @@ namespace PhotoOrganizer.Tests
             // Set path
             testDataPath = Path.Combine(Environment.CurrentDirectory, "test" + Path.DirectorySeparatorChar);
             Directory.CreateDirectory(testDataPath);
+            targetDir = Directory.CreateDirectory(targetDir.FullName);
+            sourceDir = Directory.CreateDirectory(sourceDir.FullName);
 
             DirectoryRecord d1 = new DirectoryRecord(DirectoryType.Target, targetDir.FullName, "local-art");
             DirectoryRecord d2 = new DirectoryRecord(DirectoryType.Source, sourceDir.FullName);
