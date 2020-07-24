@@ -7,8 +7,7 @@ stages:
 build:
     stage: build
     script:
-        - "ls"
-        - "cd PhotoOrganizer.Test"
+        - "cd PhotoOrganizer.Tests"
         - "dotnet build"
     tags: [build] 
         
