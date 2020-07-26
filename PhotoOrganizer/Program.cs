@@ -112,34 +112,6 @@ namespace PhotoOrganizer
 
         #endregion
 
-        /// <summary>
-        /// Executes a move operation on stored directories
-        /// </summary>
-        /// <param name="args">CLI args</param>
-        /// <returns>Status code program should echo before exiting</returns>
-        static int ExecuteMove(string[] args)
-        {
-            // After command is consumed, expecting:
-            // $source_identifier [$addl_source, ...] $target_identifier
-
-            // reject wrong number of args
-            if (args.Length < 2)
-            {
-                Console.WriteLine("Expected 2 arguments, got {0}", args.Length);
-                return 1;
-            }
-
-            var result = Organizer.Move(args);
-            if (result.Successful)
-            {
-                return 0;
-            }
-            else
-            {
-                Console.WriteLine(result.Message);
-                return 1;
-            }
-        }
 
         #region scheme
         static int AddScheme(SchemeAddOptions opts)

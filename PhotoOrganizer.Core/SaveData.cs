@@ -302,48 +302,10 @@ namespace PhotoOrganizer.Core
         /// If the operation is succesful, the status of the validity is stored in the Data field.</returns>
         public static Result ValidateDirectories(List<DirectoryRecord> input)
         {
-            StreamReader reader = null;
-            try
-            {
-                reader = File.OpenText(SaveData.DirectoriesFilePath);
-
-                int line = 1;
-                while (!reader.EndOfStream && input.Count > 0)
-                {
-                    DirectoryRecord rec;
-                    // cancel at the first failed parse
-                    if (!DirectoryRecord.TryParse(reader.ReadLine(), out rec))
-                    {
-                        return Result.Failure("Failed to parse directory on line {0}", line);
-                    }
-                    // only add if of the requested type
-                    else
-                    {
-                        // If input contains this, remove it
-                        int index = input.IndexOf(rec);
-                        if (index != -1)
-                        {
-                            input.RemoveAt(index);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                return Result.Failure(ex.ToString());
-            }
-            finally
-            {
-                reader?.Close();
-            }
-
-            // If all inputs were matches, that list should be empty now
-            if (input.Count > 0)
-            {
-                return Result.Success(false);
-            }
-            else
+            if (input.All(i => Array.Find(Directories, d => d.Identifier == i.Identifier) != null))
                 return Result.Success(true);
+            else
+                return Result.Success(false);
         }
 
         /// <summary>
@@ -355,46 +317,8 @@ namespace PhotoOrganizer.Core
         /// If the operation is succesful, the status of the validity is stored in the Data field.</returns>
         public static Result ValidateDirectories(DirectoryRecord[] input)
         {
-            StreamReader reader = null;
-            try
-            {
-                reader = File.OpenText(SaveData.DirectoriesFilePath);
-
-                int line = 1;
-                while (!reader.EndOfStream && input.Length > 0)
-                {
-                    DirectoryRecord rec;
-                    // cancel at the first failed parse
-                    if (!DirectoryRecord.TryParse(reader.ReadLine(), out rec))
-                    {
-                        return Result.Failure("Failed to parse directory on line {0}", line);
-                    }
-                    // only add if of the requested type
-                    else
-                    {
-                        // If input contains this, remove it
-                        int index = Array.IndexOf(input, rec);
-                        if (index != -1)
-                        {
-                            input[index] = null;
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                return Result.Failure(ex.ToString());
-            }
-            finally
-            {
-                reader?.Close();
-            }
-
-            // If all inputs were matches, that list should be empty now
-            if (input.Any(r => r != null))
-            {
+            if (input.All(i => Array.Find(Directories, d => d.Identifier == i.Identifier) != null))
                 return Result.Success(true);
-            }
             else
                 return Result.Success(false);
         }
@@ -408,114 +332,6 @@ namespace PhotoOrganizer.Core
         public static DirectoryRecord ValidateDirectoryIdentifier(string id)
         {
             return Directories.FirstOrDefault(r => r.IsIdentifiableBy(id));
-        }
-
-        /// <summary>
-        /// Verifies that all the identifiers in <paramref name="input"/> are stored in the config file.
-        /// If all are, <see cref="Result.Successful"/> is TRUE and <see cref="Result.Data"/> is populated
-        /// with the list of saved, matching DirectoryRecords, else it is FALSE and <see cref="Result.Data"/>
-        /// is populated with the list of inputs that were not found in saved files.
-        /// </summary>
-        /// <typeparam name="DirectoryRecord">Type of Directory Record which should be populated in
-        /// <see cref="Result.Data"/> if the inputs match.</typeparam>
-        /// <param name="input">Array of identifiers (paths or aliases)</param>
-        /// <returns>A Result indicating whether the operation was successful</returns>
-        public static Result ValidateDirectories<DirectoryRecord>(string[] input)
-        {
-            Array.Sort(input);
-            StreamReader reader = null;
-            int count = input.Length;
-            List<Core.DirectoryRecord> records = new List<Core.DirectoryRecord>();
-            try
-            {
-                reader = File.OpenText(SaveData.DirectoriesFilePath);
-                int line = 1;
-                while (!reader.EndOfStream && count > 0)
-                {
-                    Core.DirectoryRecord rec;
-                    // cancel at the first failed parse
-                    if (!Core.DirectoryRecord.TryParse(reader.ReadLine(), out rec))
-                    {
-                        return Result.Failure("Failed to parse directory on line {0}", line);
-                    }
-                    // only add if of the requested type
-                    else
-                    {
-                        // See if user included this record by path
-                        int index = Array.BinarySearch(input, rec.Path);
-                        // or search by alias
-                        if (index == -1 && (rec.Path != rec.Identifier))
-                        {
-                            index = Array.BinarySearch(input, rec.Path);
-                        }
-
-                        // If we found the item in the given list of directories, add one to successful count
-                        if (index != -1)
-                        {
-                            count--;
-                            records.Add(rec);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                return Result.Failure(ex.ToString());
-            }
-            finally
-            {
-                reader?.Close();
-            }
-
-            // If all inputs were matches, that list should be empty now
-            if (count > 0)
-            {
-                // say that the operation was successful, but the given directories were not valid (pass list into data)
-                // Determine all input directories that were not found in config
-                string notFound = String.Empty;
-                for (int i = 0; i < input.Length; i++)
-                {
-                    if (!String.IsNullOrEmpty(input[i]))
-                    {
-                        notFound += input[i] + Environment.NewLine;
-                    }
-                }
-                notFound = notFound.Substring(0, notFound.Length - Environment.NewLine.Length); // remove trailing newline
-                return Result.Failure(notFound);
-            }
-            else
-            // return the records we found, in the right format
-            {
-                if (typeof(DirectoryRecord).Name == typeof(SourceDirectory).Name)
-                {
-                    List<SourceDirectory> rets = new List<SourceDirectory>();
-                    while (records.Count > 0)
-                    {
-                        rets.Add((SourceDirectory)records[0]);
-                        records.RemoveAt(0);
-                    }
-                    return Result.Success(rets);
-
-                }
-                else if (typeof(DirectoryRecord).Name == typeof(TargetDirectory).Name)
-                {
-                    List<TargetDirectory> rets = new List<TargetDirectory>();
-                    while (records.Count > 0)
-                    {
-                        rets.Add((TargetDirectory)records[0]);
-                        records.RemoveAt(0);
-                    }
-                    return Result.Success(rets);
-                }
-                else
-                {
-                    return Result.Failure("Unknown type {0}", typeof(DirectoryRecord).FullName);
-                }
-            }
-
-            // Now do the move
-
-            throw new NotImplementedException();
         }
 
         /// <summary>
