@@ -15,6 +15,8 @@ namespace PhotoOrganizer.Tests
         static DirectoryInfo targetDir = new DirectoryInfo("../../../Images/target/");
         static DirectoryInfo sourceDir = new DirectoryInfo("../../../Images/source/");
 
+        static List<string> DeleteTheseBetweenRuns = new List<string>();
+
         [SetUp]
         public static void WriteTestData()
         {
@@ -58,6 +60,15 @@ namespace PhotoOrganizer.Tests
             {
                 file.Delete();
             }
+
+            foreach (var itm in DeleteTheseBetweenRuns)
+            {
+                if (File.Exists(itm))
+                {
+                    File.Delete(itm);
+                }
+            }
+            DeleteTheseBetweenRuns.Clear();
         }
 
         [TearDown]
@@ -68,9 +79,23 @@ namespace PhotoOrganizer.Tests
             {
                 file.Delete();
             }
+            foreach (var itm in DeleteTheseBetweenRuns)
+            {
+                if (File.Exists(itm))
+                {
+                    File.Delete(itm);
+                }
+            }
+            DeleteTheseBetweenRuns.Clear();
+        }
+
+        public static bool VerifyImagesMatch(ImageRecord rec1, ImageRecord rec2)
+        {
+            return (rec1.File.Name == rec2.File.Name);
         }
 
         [Test]
+        [Description("Verifies that successful move operations return an empty string.")]
         public static void ExecMove_Success_ReturnsEmptyString()
         {
             string result = Runner.RunProgram($"exec-move -s \"{sourceDir.FullName}\" -t local-art");
@@ -78,6 +103,7 @@ namespace PhotoOrganizer.Tests
         }
 
         [Test]
+        [Description("Verifies that move operations move all images from the source directory to the target directory.")]
         public static void ExecMove_Success_MovesAllImages()
         {
             Dictionary<string, long> images = new Dictionary<string, long>();
@@ -98,6 +124,27 @@ namespace PhotoOrganizer.Tests
                 if (!images.ContainsKey(img.Name))
                     Assert.Fail("Encountered unexpected image {0}", img.FullName);
             }
+        }
+
+        [Test]
+        [Description("Verifies that move operations respect the source directory's recursion option.")]
+        public static void ExecMove_Success_RespectsRecursiveOption()
+        {
+            var subdir = sourceDir.CreateSubdirectory("supa-secret");
+            var sourceSet = sourceDir.GetFiles("*", SearchOption.AllDirectories);
+            var taken = sourceSet[0];
+            taken.MoveTo(Path.Combine(subdir.FullName, taken.Name));
+            DeleteTheseBetweenRuns.Add(taken.FullName);
+
+            Runner.RunProgram($"exec-move -s \"{sourceDir.FullName}\" -t local-art");
+            var targetSet = targetDir.GetFiles();
+
+            Assert.That(targetSet.Length, Is.EqualTo(sourceSet.Length - 1),
+                "Expected 1 fewer image in target that was not pulled recursively, but got {0}", sourceSet.Length);
+
+            var missing = targetSet.Count(t => t.Name == taken.Name);
+            Assert.That(missing, Is.Zero,
+                "Images in target set matched an image in source set, but no match was expected.");
         }
 
         

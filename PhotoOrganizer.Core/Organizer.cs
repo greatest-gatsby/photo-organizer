@@ -35,14 +35,8 @@ namespace PhotoOrganizer.Core
             }
 
             // now collect all the images
-            var sourceImgs = new DirectoryInfo(source.Path)
-                .GetFiles()
-                .Select<FileInfo, ImageRecord>(fi => new ImageRecord(fi))
-                .ToArray();
-            var targetImgs = new DirectoryInfo(target.Path)
-                .GetFiles()
-                .Select<FileInfo, ImageRecord>(fi => new ImageRecord(fi))
-                .ToArray();
+            ImageRecord[] sourceImgs = source.GetRecordsForContents();
+            ImageRecord[] targetImgs = target.GetRecordsForContents();
 
             // reject empty sets
             if (sourceImgs.Length == 0)

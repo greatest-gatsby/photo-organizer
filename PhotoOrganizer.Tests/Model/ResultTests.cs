@@ -7,14 +7,30 @@ using NUnit.Framework;
 
 namespace PhotoOrganizer.Tests
 {
-    public class ResultTests
+    public class UtilityTests
     {
-        public void Result_Failure_PassesMessage()
+        [Test]
+        [Description("Verifies that strings given to the Result.Failure() method are formatted")]
+        public void Result_Failure_FormatsArgs()
         {
-            const string msg = "eat ur veggies";
-            var result = Result.Failure(msg);
-            Assert.That(result.Successful, Is.False);
-            Assert.That(result.Message, Is.EqualTo(msg));
+            var res = Result.Failure("This is the base {0} l", "message");
+            Assert.That(res.Message, Is.EqualTo("This is the base message l"));
+        }
+
+        [Test]
+        [Description("Verifies that data given to the Result.Failure() method are filled in the returned object")]
+        public void Result_Failure_FillsData()
+        {
+            var res = Result.Failure("This is the data", data: 722);
+            Assert.That(res.Data, Is.EqualTo(722));
+        }
+
+        [Test]
+        [Description("Verifies that strings given to the Result.Success() method are formatted")]
+        public void Result_Success_FillsData()
+        {
+            var res = Result.Success("the fancy data object goes here");
+            Assert.That(res.Data, Is.EqualTo("the fancy data object goes here"));
         }
     }
 }

@@ -55,7 +55,11 @@ namespace PhotoOrganizer
             }
 
             // Create record
-            DirectoryRecord record = new DirectoryRecord(opts.DirType, opts.Directory, String.Join(' ', opts.Alias));
+            DirectoryRecord record = new DirectoryRecord(opts.DirType,
+                opts.Directory, String.Join(' ', opts.Alias))
+            {
+                RecursiveSource = opts.Recursive
+            };
                         
             // Attempt to save
             var result = SaveData.AddDirectory(record);
@@ -83,7 +87,9 @@ namespace PhotoOrganizer
                 foreach (DirectoryRecord rec in (DirectoryRecord[])(set.Data))
                 {
                     string lineTail = String.IsNullOrEmpty(rec.Alias) ? "" : "\t" + rec.Alias;
-                    Console.Write(rec.Type.ToString("g") + "\t" + rec.Path + lineTail + Environment.NewLine);
+                    Console.Write(rec.Type.ToString("g") +
+                        ((rec.RecursiveSource && rec.Type == DirectoryType.Source) ? " (R)" : "") + "\t" +
+                        rec.Path + lineTail + Environment.NewLine);
                 }
             }
             return 0;

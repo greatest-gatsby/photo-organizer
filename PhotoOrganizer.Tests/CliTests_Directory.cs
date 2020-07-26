@@ -142,6 +142,16 @@ namespace PhotoOrganizer.Tests
             Assert.That(result.EndsWith("target\td:\\artboi"));
         }
 
+        [Test]
+        [Description("Verifies that recursive source directories are shown as such when enumerated.")]
+        public static void Add_Recursive_ShowsRecursive()
+        {
+            const string arg_new = "directory-add -t source -d B:\\atman -a frlyfe -r";
+            Runner.RunProgram(arg_new);
+            string result = Runner.RunProgram("directory-list");
+            Assert.That(result, Contains.Substring("source (r)\tb:\\atman"));
+        }
+
 
         #endregion
 

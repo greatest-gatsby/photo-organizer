@@ -21,6 +21,9 @@ namespace PhotoOrganizer
 
         [Option('s', "scheme", Required = false, HelpText = "Alias of the directory scheme to use. If none is provided, the default will be used.")]
         public string SchemeIdentifier { get; set; }
+
+        [Option('r', "recursive", Required = false, HelpText = "Search this directory recursively. Only applicable to source directories.")]
+        public bool Recursive { get; set; }
     }
 
     [Verb("directory-list", HelpText = "List managed directories.")]

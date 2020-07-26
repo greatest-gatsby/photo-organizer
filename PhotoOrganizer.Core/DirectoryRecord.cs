@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using System.Xml.Serialization;
 using System.Xml.Linq;
 using System.Linq;
+using System.IO;
 
 namespace PhotoOrganizer.Core
 {
@@ -67,13 +68,18 @@ namespace PhotoOrganizer.Core
 
         public DirectoryScheme Scheme { get; set; }
 
+
+        public bool RecursiveSource { get; set; } = false;
+
+
         /// <summary>
         /// Constructs a string of the record in the easily parsable format
         /// </summary>
         /// <returns>A formatted line representing this record</returns>
         public override string ToString()
         {
-            return Type.ToString("g") + "\t" +
+            return Type.ToString("g") + 
+                ((RecursiveSource  && Type == DirectoryType.Source) ? " (R)" : "") + "\t" +
                 Path + "\t" +
                 Alias + Environment.NewLine;
         }
@@ -82,6 +88,7 @@ namespace PhotoOrganizer.Core
         /// Parses a Directory Type from the given type string. Case and trim insensitive.
         /// </summary>
         /// <param name="input"></param>
+        /// <exception cref="FormatException">Thrown if the input does not match a known DirectoryType</exception>
         /// <returns></returns>
         public static DirectoryType ParseType(string input)
         {
@@ -98,7 +105,7 @@ namespace PhotoOrganizer.Core
         }
 
         /// <summary>
-        /// Parses a directory type from the given string, and returns the status of the parse attempt
+        /// Parses a directory type from the given string, and returns the status of the parse attempt.
         /// </summary>
         /// <param name="input">The string to parse into a DirectoryType</param>
         /// <param name="type">The DirectoryType whose value will be overwritten with the parsed value, if successful</param>
@@ -155,6 +162,20 @@ namespace PhotoOrganizer.Core
         public string[] GetNewLocation(ImageRecord[] imgs)
         {
             throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Gets all applicable images from this directory. This returns all images within the directory
+        /// TOP LEVEL ONLY unless this is a SOURCE directory and the recursive option is enabled.
+        /// </summary>
+        /// <returns></returns>
+        public ImageRecord[] GetRecordsForContents()
+        {
+            var opt = this.RecursiveSource ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+            return new System.IO.DirectoryInfo(this.Path)
+                .GetFiles("*", opt)
+                .Select<System.IO.FileInfo, ImageRecord>(fi => new ImageRecord(fi))
+                .ToArray();
         }
     }
 
