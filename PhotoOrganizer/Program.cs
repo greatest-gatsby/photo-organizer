@@ -156,7 +156,7 @@ namespace PhotoOrganizer
             var res = SaveData.GetSchemes();
             if (res.Successful)
             {
-                var set = (List<DirectoryScheme>)res.Data;
+                var set = res.Data;
                 foreach (var itm in set)
                 {
                     Console.WriteLine(itm.ToString());

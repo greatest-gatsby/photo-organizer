@@ -20,18 +20,18 @@ namespace PhotoOrganizer.Core
         /// <param name="sourceId">Identifier of the source directory</param>
         /// <param name="targetId">Identifier of the target directory</param>
         /// <returns>True if the operation succeeds and False if it fails.</returns>
-        public static Result TryMove(string sourceId, string targetId)
+        public static Result<object> TryMove(string sourceId, string targetId)
         {
             // get directory records and validate
             var source = SaveData.ValidateDirectoryIdentifier(sourceId);
             var target = SaveData.ValidateDirectoryIdentifier(targetId);
             if (source == null)
             {
-                return Result.Failure(String.Format("Unrecognized source {0}", sourceId));
+                return Result<object>.Failure(String.Format("Unrecognized source {0}", sourceId));
             }
             if (target == null)
             {
-                return Result.Failure(String.Format("Unrecognized target {0}", targetId));
+                return Result<object>.Failure(String.Format("Unrecognized target {0}", targetId));
             }
 
             // now collect all the images
@@ -41,7 +41,7 @@ namespace PhotoOrganizer.Core
             // reject empty sets
             if (sourceImgs.Length == 0)
             {
-                return Result.Success();
+                return Result<object>.Success();
             }
 
             // sort -- this will speed up lookups
@@ -57,7 +57,7 @@ namespace PhotoOrganizer.Core
                 // complication: how do we account for variant versions? such as '_2' or '(2)' or 'edited'
 
                 var loc = Array.BinarySearch(targetImgs, sourceImgs[i], new Sorters.FileNameMatches());
-                if (loc == -1)
+                if (loc <= 0)
                 {
                     // target doesn't have this image, so we need to copy it over
                 }
@@ -89,7 +89,7 @@ namespace PhotoOrganizer.Core
 
             }
 
-            return Result.Success();
+            return Result<object>.Success();
         }
     }
 }
