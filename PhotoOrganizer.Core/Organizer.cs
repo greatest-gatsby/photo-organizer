@@ -20,18 +20,18 @@ namespace PhotoOrganizer.Core
         /// <param name="sourceId">Identifier of the source directory</param>
         /// <param name="targetId">Identifier of the target directory</param>
         /// <returns>True if the operation succeeds and False if it fails.</returns>
-        public static Result<object> TryMove(string sourceId, string targetId)
+        public static Result TryMove(string sourceId, string targetId)
         {
             // get directory records and validate
             var source = SaveData.ValidateDirectoryIdentifier(sourceId);
             var target = SaveData.ValidateDirectoryIdentifier(targetId);
             if (source == null)
             {
-                return Result<object>.Failure(String.Format("Unrecognized source {0}", sourceId));
+                return Result.Failure(String.Format("Unrecognized source {0}", sourceId));
             }
             if (target == null)
             {
-                return Result<object>.Failure(String.Format("Unrecognized target {0}", targetId));
+                return Result.Failure(String.Format("Unrecognized target {0}", targetId));
             }
 
             // now collect all the images
@@ -41,7 +41,7 @@ namespace PhotoOrganizer.Core
             // reject empty sets
             if (sourceImgs.Length == 0)
             {
-                return Result<object>.Success();
+                return Result.Success();
             }
 
             // sort -- this will speed up lookups
@@ -89,7 +89,7 @@ namespace PhotoOrganizer.Core
 
             }
 
-            return Result<object>.Success();
+            return Result.Success();
         }
     }
 }

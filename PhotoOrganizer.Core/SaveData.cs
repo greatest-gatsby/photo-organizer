@@ -13,97 +13,6 @@ using System.Runtime.CompilerServices;
 
 namespace PhotoOrganizer.Core
 {
-    /// <summary>
-    /// Utility class useful for giving descriptive, non-throwing reports on operation status.
-    /// </summary>
-    public class Result<T>
-    {
-        /// <summary>
-        /// The message explaing the error. If the operation succeeded, then this returns String.Empty()
-        /// </summary>
-        public string Message { get; private set; }
-
-        /// <summary>
-        /// Returns true if the operation succeeded, else false.
-        /// </summary>
-        public bool Successful { get; private set; }
-
-        /// <summary>
-        /// Contains data associated with the operation, if any
-        /// </summary>
-        public T Data { get; private set; }
-
-        /// <summary>
-        /// Creates a FAILING result with the given message
-        /// </summary>
-        /// <param name="message">Message to explain failure</param>
-        /// <param name="args">Optional array of objects to use when formatting the string.</param>
-        private Result(string message, params object[] args)
-        {
-            Message = String.Format(message, args);
-            Successful = false;
-        }
-
-        /// <summary>
-        /// Creates a PASSING result 
-        /// </summary>
-        private Result()
-        {
-            Message = String.Empty;
-            Successful = true;
-        }
-
-        /// <summary>
-        /// Returns a Successful Result
-        /// </summary>
-        /// <returns></returns>
-        public static Result<T> Success()
-        {
-            return new Result<T>();
-        }
-
-        /// <summary>
-        /// Returns a Result with the given data
-        /// </summary>
-        /// <param name="data"></param>
-        /// <returns></returns>
-        public static Result<T> Success(T data)
-        {
-            return new Result<T>()
-            {
-                Data = data
-            };
-        }
-
-        /// <summary>
-        /// Returns a Result indicating FAILURE with the given message
-        /// </summary>
-        /// <param name="message">The message to explain the failure</param>
-        /// <param name="args">Optional array of objects to use when formatting the string.</param>
-        /// <returns>A result indicating FAILURE with the given message</returns>
-        public static Result<T> Failure(string message, params object[] args) {
-            {
-                return new Result<T>(message, args);
-            }
-        }
-
-        /// <summary>
-        /// Returns a Result indicating FAILURE with the given message
-        /// </summary>
-        /// <param name="message">The message to explain the failure</param>
-        /// <param name="args">Optional array of objects to use when formatting the string.</param>
-        /// <returns>A result indicating FAILURE with the given message</returns>
-        public static Result<T> Failure(string message, T data, params object[] args)
-        {
-            {
-                if (args == null || args.Length == 0)
-                    return new Result<T>(message, data) { Data = data };
-                else
-                    return new Result<T>(message, args) { Data = data };
-            }
-        }
-    }
-
     public static class SaveData
     {
         /// <summary>
@@ -207,7 +116,7 @@ namespace PhotoOrganizer.Core
         /// Adds the given record to the Directories file
         /// </summary>
         /// <param name="record">DirectoryRecord to save to disk</param>
-        public static Result<string> AddDirectory(DirectoryRecord record)
+        public static Result AddDirectory(DirectoryRecord record)
         {
             var list = new List<DirectoryRecord>();
             if (File.Exists(DirectoriesFilePath))
@@ -228,9 +137,17 @@ namespace PhotoOrganizer.Core
             {
                 Directories.Append(d);
             }
-            File.WriteAllText(DirectoriesFilePath, JsonSerializer.Serialize<DirectoryRecord[]>(list.ToArray()));
 
-            return Result<string>.Success();
+            try
+            {
+                File.WriteAllText(DirectoriesFilePath, JsonSerializer.Serialize<DirectoryRecord[]>(list.ToArray()));
+            }
+            catch (Exception ex)
+            {
+                return Result.Failure(ex.ToString());
+            }
+
+            return Result.Success();
         }
 
         /// <summary>
@@ -238,7 +155,7 @@ namespace PhotoOrganizer.Core
         /// </summary>
         /// <param name="identifier">CLI args containing the path or name</param>
         /// <returns></returns>
-        public static Result<string> RemoveDirectory(string identifier)
+        public static Result RemoveDirectory(string identifier)
         {
             if (File.Exists(DirectoriesFilePath))
             {
@@ -247,23 +164,31 @@ namespace PhotoOrganizer.Core
                 if (loc == -1)
                 {
                     // no directoryrecord found with that identifier
-                    return Result<string>.Failure("Could not remove directory because it was not found");
+                    return Result.Failure("Could not remove directory because it was not found");
                 }
                 else
                 {
                     // found itttt
                     list.RemoveAt(loc);
-                    File.WriteAllText(DirectoriesFilePath, JsonSerializer.Serialize<List<DirectoryRecord>>(list));
+
+                    try
+                    {
+                        File.WriteAllText(DirectoriesFilePath, JsonSerializer.Serialize<List<DirectoryRecord>>(list));
+                    }
+                    catch (Exception ex)
+                    {
+                        return Result.Failure(ex.ToString());
+                    }
 
                     // stuff
                     Directories = Directories.Where(d => !d.IsIdentifiableBy(identifier)).ToArray();
 
-                    return Result<string>.Success();
+                    return Result.Success();
                 }
             }
             else
             {
-                return Result<string>.Failure("Could not remove directory because no save data was found");
+                return Result.Failure("Could not remove directory because no save data was found");
             }
         }
 
@@ -355,7 +280,7 @@ namespace PhotoOrganizer.Core
         /// </summary>
         /// <param name="scheme"></param>
         /// <returns></returns>
-        public static Result<bool> AddScheme(DirectoryScheme scheme)
+        public static Result AddScheme(DirectoryScheme scheme)
         {
             List<DirectoryScheme> collection = null;
             if (File.Exists(SchemesFilePath))
@@ -364,7 +289,7 @@ namespace PhotoOrganizer.Core
                 collection = JsonSerializer.Deserialize<List<DirectoryScheme>>(File.ReadAllText(SchemesFilePath));
                 if (collection.Any(s => s.FormatString == scheme.FormatString || s.Name == scheme.Name))
                 {
-                    return Result<bool>.Failure("Already have a scheme with the same format or name");
+                    return Result.Failure("Already have a scheme with the same format or name");
                 }
             }
             else
@@ -374,8 +299,16 @@ namespace PhotoOrganizer.Core
 
             // add this scheme and write all to disk
             collection.Add(scheme);
-            File.WriteAllText(SchemesFilePath, JsonSerializer.Serialize<List<DirectoryScheme>>(collection));
-            return Result<bool>.Success();
+
+            try
+            {
+                File.WriteAllText(SchemesFilePath, JsonSerializer.Serialize<List<DirectoryScheme>>(collection));
+            }
+            catch (Exception ex)
+            {
+                return Result.Failure(ex.ToString());
+            }
+            return Result.Success();
         }
 
         /// <summary>
@@ -383,7 +316,7 @@ namespace PhotoOrganizer.Core
         /// </summary>
         /// <param name="scheme">Scheme to remove from the file</param>
         /// <returns></returns>
-        public static Result<string> RemoveScheme(string identifier)
+        public static Result RemoveScheme(string identifier)
         {
             if (File.Exists(SchemesFilePath))
             {
@@ -392,18 +325,26 @@ namespace PhotoOrganizer.Core
                 if (loc == -1)
                 {
                     // specified scheme not found
-                    return Result<string>.Failure("Specified scheme was not removed because it could not be found");
+                    return Result.Failure("Specified scheme was not removed because it could not be found");
                 }
                 else
                 {
                     schemes.RemoveAt(loc);
-                    File.WriteAllText(SchemesFilePath, JsonSerializer.Serialize<List<DirectoryScheme>>(schemes));
-                    return Result<string>.Success();
+
+                    try
+                    {
+                        File.WriteAllText(SchemesFilePath, JsonSerializer.Serialize<List<DirectoryScheme>>(schemes));
+                    }
+                    catch (Exception ex)
+                    {
+                        return Result.Failure(ex.ToString());
+                    }
+                    return Result.Success();
                 }
             }
             else
             {
-                return Result<string>.Failure("Schemes file is empty - cannot remove the specified scheme");
+                return Result.Failure("Schemes file is empty - cannot remove the specified scheme");
             }
         }
     }
