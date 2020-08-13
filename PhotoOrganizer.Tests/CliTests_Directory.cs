@@ -202,13 +202,24 @@ namespace PhotoOrganizer.Tests
 
         [Test]
         [Description("Verifies that the 'directory-remove' command prints an error message when given an invalid path")]
-        public static void Remove_BadArgs_PrintsMessage()
+        public static void Remove_BadPath_PrintsMessage()
         {
             const string remove = "directory-remove -d squiiire";
             string result = Runner.RunProgram(remove);
+
+            Assert.That(result, Is.EqualTo("error: could not remove directory squiiire because it was not found"));
         }
 
-        public static void 
+        [Test]
+        [Description("Verifies that the 'directory-remove' command prints an error message when given an invalid alias ")]
+        public static void Remove_BadAlias_PrintsMessage()
+        {
+            const string alias = "nahfam";
+            const string remove = "directory-remove -a " + alias;
+            string result = Runner.RunProgram(remove);
+
+            Assert.That(result, Is.EqualTo($"error: could not remove directory {alias} because it was not found"));
+        }
         #endregion
     }
 }

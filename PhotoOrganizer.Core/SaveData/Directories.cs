@@ -95,7 +95,7 @@ namespace PhotoOrganizer.Core
         {
             if (GetDirectoryOrDefault(identifier) == null)
             {
-                return Result.Failure("Could not remove directory because it was not found");
+                return Result.Failure($"Error: Could not remove directory {identifier} because it was not found");
             }
             else
             {
