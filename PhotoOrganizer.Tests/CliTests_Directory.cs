@@ -7,6 +7,7 @@ using System.Text.Json.Serialization;
 
 using PhotoOrganizer.Core;
 using NUnit.Framework;
+using System.Linq;
 
 namespace PhotoOrganizer.Tests
 {
@@ -36,6 +37,8 @@ namespace PhotoOrganizer.Tests
 
             // Update SaveData
             SaveData.DataDirectory = testDataPath;
+
+            SaveData.Directories = SaveData.LoadDirectoriesFromDisk();
 
         }
 
@@ -127,29 +130,37 @@ namespace PhotoOrganizer.Tests
         [Description("Verifies that the directories added via the 'add' command show up in the 'list' command")]
         public static void Add_ConsumesArgs()
         {
-            const string arg_new = "directory-add -t source -d B:\\atman -a frlyfe";
-            string result = Runner.RunProgram(arg_new);
-            Assert.AreEqual(String.Empty, result);
+            const string argPath = "B:\\atman";
+            const string argAlias = "frlyfe";
+            const string argNew = "directory-add -t source -d " + argPath +  " -a " + argAlias;
+            string result = Runner.RunProgram(argNew);
 
-            result = Runner.RunProgram("directory-list");
-            Assert.That(result.EndsWith("source\tB:\\atman\tfrlyfe", StringComparison.OrdinalIgnoreCase));
+            Assert.AreEqual(String.Empty, result, "Adding a directory triggered program output unexpectedly");
 
-            const string arg_new_nameless = "directory-add -t target -d D:\\artboi";
-            result = Runner.RunProgram(arg_new_nameless);
-            Assert.AreEqual(String.Empty, result);
+            var newDir = SaveData.Directories.FirstOrDefault(d => d.Path == argPath && d.Alias == argAlias && d.Type == DirectoryType.Source);
+            Assert.That(newDir, Is.Not.Null, "Couldn't find the added directory in SaveData");
 
-            result = Runner.RunProgram("directory-list");
-            Assert.That(result.EndsWith("target\td:\\artboi"));
+            const string argPathNameless = "D:\\artboi";
+            const string argNewNameless = "directory-add -t target -d " + argPathNameless;
+            result = Runner.RunProgram(argNewNameless);
+            Assert.AreEqual(String.Empty, result, "Adding a directory triggered program output unexpectedly");
+
+            newDir = SaveData.Directories.FirstOrDefault(d => d.Path == argPathNameless && d.Type == DirectoryType.Target);
+            Assert.That(newDir, Is.Not.Null, "Couldn't find the added directory in SaveData");
         }
 
         [Test]
         [Description("Verifies that recursive source directories are shown as such when enumerated.")]
         public static void Add_Recursive_ShowsRecursive()
         {
-            const string arg_new = "directory-add -t source -d B:\\atman -a frlyfe -r";
-            Runner.RunProgram(arg_new);
-            string result = Runner.RunProgram("directory-list");
-            Assert.That(result, Contains.Substring("source (r)\tb:\\atman"));
+            const string argPath = "B:\\atman", argAlias = "frlyfe";
+            const string arg_new = "directory-add -t source -d " + argPath + " -a " + argAlias + " -r";
+            
+            string result = Runner.RunProgram(arg_new);
+            Assert.AreEqual(String.Empty, result, "Adding a directory triggered program output unexpectedly");
+            
+            var newDir = SaveData.Directories.FirstOrDefault(d => d.Path == argPath && d.Alias == argAlias && d.Type == DirectoryType.Source && d.RecursiveSource);
+            Assert.That(newDir, Is.Not.Null, "Couldn't find the added directory in SaveData");
         }
 
 
@@ -160,24 +171,28 @@ namespace PhotoOrganizer.Tests
         [Description("Verifies that directories can be removed via path, even if they have an alias")]
         public static void Remove_MatchesByPath()
         {
-            const string remove = "directory-remove -d E:\\Backup\\Images";
+            const string path = "E:\\Backup\\Images";
+            const string remove = "directory-remove -d " + path;
             Runner.RunProgram(remove);
-            string result = Runner.RunProgram("directory-list");
-            Assert.That(result, !Contains.Substring("e:\\backup\\images"));
+
+            var newDir = SaveData.Directories.FirstOrDefault(d => d.Path == path);
+            Assert.That(newDir, Is.Null, "Found the directory that should have been removed from SaveData");
         }
 
         [Test]
         [Description("Verifies that directories can be removed via alias")]
         public static void Remove_MatchesByAlias()
         {
-            const string remove = "directory-remove -a big-disk";
+            const string alias = "big-disk";
+            const string remove = "directory-remove -a " + alias;
             Runner.RunProgram(remove);
-            string result = Runner.RunProgram("directory-list");
-            Assert.That(result, !Contains.Substring("big-disk"));
+
+            var newDir = SaveData.Directories.FirstOrDefault(d => d.Alias == alias);
+            Assert.That(newDir, Is.Null, "Found the directory that should have been removed from SaveData");
         }
 
         [Test]
-        [Description("Verifies that the 'remove' command silently executes when given valid arguments")]
+        [Description("Verifies that the 'directory-remove' command silently executes when given valid arguments")]
         public static void Remove_GoodArgs_NoMessage()
         {
             const string remove = "directory-remove -d E:\\Backup\\Images";
@@ -186,12 +201,14 @@ namespace PhotoOrganizer.Tests
         }
 
         [Test]
-        [Description("Verifies that the 'remove' command prints an error message when given invalid arguments")]
+        [Description("Verifies that the 'directory-remove' command prints an error message when given an invalid path")]
         public static void Remove_BadArgs_PrintsMessage()
         {
-            const string remove = "remove squiiire";
+            const string remove = "directory-remove -d squiiire";
             string result = Runner.RunProgram(remove);
         }
+
+        public static void 
         #endregion
     }
 }

@@ -27,16 +27,25 @@ namespace PhotoOrganizer.Core
         /// </summary>
         public string Description { get; set; }
 
+        /// <summary>
+        /// Gets a human-friendly, tabbed string representing this Scheme.
+        /// </summary>
+        /// <returns></returns>
         public override string ToString()
         {
             return this.FormatString + "\t" + this.Name + "\t" + this.Description + Environment.NewLine;
         }
 
-        public DirectoryScheme()
+        /// <summary>
+        /// Determines whether this Scheme can be identified by the given identifier. Checks alias and format string.
+        /// </summary>
+        /// <param name="identifier"></param>
+        /// <returns></returns>
+        public bool IsIdentifiableBy(string identifier)
         {
-
+            return (this.Name == identifier) || (this.FormatString == identifier);
         }
-
+        public DirectoryScheme() { }
         public DirectoryScheme(string format, string alias, string desc = "")
         {
             this.FormatString = format;

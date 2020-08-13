@@ -159,7 +159,7 @@ namespace PhotoOrganizer.Core
         /// </summary>
         /// <param name="imgs"></param>
         /// <returns></returns>
-        public string[] GetNewLocation(ImageRecord[] imgs)
+        public string[] GetNewLocations(ImageRecord[] imgs)
         {
             throw new NotImplementedException();
         }
@@ -174,7 +174,7 @@ namespace PhotoOrganizer.Core
             var opt = this.RecursiveSource ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
             return new System.IO.DirectoryInfo(this.Path)
                 .GetFiles("*", opt)
-                .Select<System.IO.FileInfo, ImageRecord>(fi => new ImageRecord(fi))
+                .Select<System.IO.FileInfo, ImageRecord>(fi => new ImageRecord(fi, this))
                 .ToArray();
         }
     }
@@ -201,16 +201,6 @@ namespace PhotoOrganizer.Core
 
             return ret;
         }
-    }
-
-    public class TargetDirectory : DirectoryRecord
-    {
-        public TargetDirectory()
-        {
-            Type = DirectoryType.Target;
-        }
-
-        public DirectoryScheme Scheme { get; set; }
     }
 
     public enum DirectoryType

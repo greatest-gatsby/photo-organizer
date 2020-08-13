@@ -81,16 +81,12 @@ namespace PhotoOrganizer
         /// <param name="args"></param>
         static int ListDirectories(DirectoryListOptions opts)
         {
-            var set = SaveData.GetDirectories(opts.DirType);
-            if (set.Successful)
+            foreach (DirectoryRecord rec in SaveData.Directories)
             {
-                foreach (DirectoryRecord rec in (DirectoryRecord[])(set.Data))
-                {
-                    string lineTail = String.IsNullOrEmpty(rec.Alias) ? "" : "\t" + rec.Alias;
-                    Console.Write(rec.Type.ToString("g") +
-                        ((rec.RecursiveSource && rec.Type == DirectoryType.Source) ? " (R)" : "") + "\t" +
-                        rec.Path + lineTail + Environment.NewLine);
-                }
+                string lineTail = String.IsNullOrEmpty(rec.Alias) ? "" : "\t" + rec.Alias;
+                Console.Write(rec.Type.ToString("g") +
+                    ((rec.RecursiveSource && rec.Type == DirectoryType.Source) ? " (R)" : "") + "\t" +
+                    rec.Path + lineTail + Environment.NewLine);
             }
             return 0;
         }
@@ -153,28 +149,32 @@ namespace PhotoOrganizer
 
         static int ListSchemes(SchemeListOptions opts)
         {
-            var res = SaveData.GetSchemes();
-            if (res.Successful)
+            foreach (var itm in SaveData.Schemes)
             {
-                var set = res.Data;
-                foreach (var itm in set)
-                {
-                    Console.WriteLine(itm.ToString());
-                }
-                return 0;
+                Console.WriteLine(itm.ToString());
             }
-            else
-            {
-                Console.WriteLine(res.Message);
-                return 1;
-            }
+            return 0;
         }
         #endregion
 
         #region exec
         static int ExecuteMove(ExecuteMoveOptions opts)
         {
-            var res = Organizer.TryMove(opts.SourceIdentifier.Trim('"'), opts.TargetIdentifier.Trim('"'));
+            DirectoryRecord source = SaveData.GetDirectoryOrDefault(opts.SourceIdentifier);
+            if (source == null)
+            {
+                Console.WriteLine("No saved source '{0}'", opts.SourceIdentifier);
+                return 1;
+            }
+
+            DirectoryRecord target = SaveData.GetDirectoryOrDefault(opts.TargetIdentifier);
+            if (target == null)
+            {
+                Console.WriteLine("No saved target {0}", opts.TargetIdentifier);
+                return 1;
+            }
+
+            var res = Organizer.TryMove(source, target);
             if (res.Successful)
             {
                 return 0;

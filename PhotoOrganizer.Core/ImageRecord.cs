@@ -10,7 +10,9 @@ namespace PhotoOrganizer.Core
     {
         public FileInfo File { get; set; }
 
-        public ImageRecord(FileInfo info)
+        public string NewPath { get; }
+
+        public ImageRecord(FileInfo info, DirectoryRecord directory)
         {
             File = info;
         }
