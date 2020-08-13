@@ -50,7 +50,7 @@ namespace PhotoOrganizer.Tests
 
             // Update SaveData
             SaveData.DataDirectory = testDataPath;
-            SaveData.ReadDirectoriesFile();
+            SaveData.Directories = SaveData.LoadDirectoriesFromDisk();
         }
 
         [TearDown]
