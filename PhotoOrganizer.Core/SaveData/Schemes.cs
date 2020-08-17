@@ -30,6 +30,10 @@ namespace PhotoOrganizer.Core
         /// <returns></returns>
         public static DirectoryScheme[] LoadSchemesFromDisk()
         {
+            if (!File.Exists(SchemesFilePath))
+            {
+                return new DirectoryScheme[0];
+            }
             string content = File.ReadAllText(SchemesFilePath);
             if (String.IsNullOrEmpty(content))
             {

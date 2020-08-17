@@ -14,9 +14,6 @@ namespace PhotoOrganizer.Tests
     {
         static string testDataPath = String.Empty;
 
-        public static string Schemes = "{Y}\\{M}\\{II}\tyear-month\tNests images by month, by year" + Environment.NewLine
-            + "{Y}\\{MMM}\\{D}\\{E}\\{II}\tOverly organized\tLike no joke, this is way over the top" + Environment.NewLine;
-
         [SetUp]
         public static void WriteTestData()
         {
@@ -26,14 +23,14 @@ namespace PhotoOrganizer.Tests
 
             DirectoryScheme d1 = new DirectoryScheme("{Y}\\{M}\\{II}", "year-month", "Nests images by month, by year");
             DirectoryScheme d2 = new DirectoryScheme("{Y}\\{MMM}\\{D}\\{E}\\{II}", "Overly organized", "Like no joke, this is way over the top");
-            var list = new List<DirectoryScheme>() { d1, d2 };
+            var list = new DirectoryScheme[] { d1, d2 };
 
             // Write files
-            File.WriteAllText(Path.Combine(testDataPath, SaveData.SchemesFileName), JsonSerializer.Serialize<List<DirectoryScheme>>(list));
+            File.WriteAllText(Path.Combine(testDataPath, SaveData.SchemesFileName), JsonSerializer.Serialize<DirectoryScheme[]>(list));
 
             // Update SaveData
             SaveData.DataDirectory = testDataPath;
-
+            SaveData.LoadSchemesFromDisk();
         }
 
         [TearDown]
