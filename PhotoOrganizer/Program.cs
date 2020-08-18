@@ -54,9 +54,11 @@ namespace PhotoOrganizer
 
             }
 
+            string alias = String.Join(' ', opts.Alias).Trim('"');
+            opts.Directory = opts.Directory.Trim('"');
+
             // Create record
-            DirectoryRecord record = new DirectoryRecord(opts.DirType,
-                opts.Directory, String.Join(' ', opts.Alias))
+            DirectoryRecord record = new DirectoryRecord(opts.DirType, opts.Directory, alias)
             {
                 RecursiveSource = opts.Recursive
             };
@@ -69,7 +71,7 @@ namespace PhotoOrganizer
             }
             else
             {
-                Console.WriteLine(result.Message + "TAG");
+                Console.WriteLine(result.Message);
                 return 1;
             }
             
@@ -97,9 +99,7 @@ namespace PhotoOrganizer
         /// <returns>Status code program should echo before exiting</returns>
         static int RemoveDirectory(DirectoryRemoveOptions opts)
         {
-            // After command is consumed, expecting:
-            // <$name | $path>
-            string id = String.IsNullOrEmpty(opts.Alias) ? opts.Directory : opts.Alias;
+            string id = String.IsNullOrEmpty(opts.Alias) ? opts.Directory.Trim('"') : opts.Alias.Trim('"');
             var result = SaveData.RemoveDirectory(id);
             if (result.Successful)
             {
@@ -118,6 +118,12 @@ namespace PhotoOrganizer
         #region scheme
         static int AddScheme(SchemeAddOptions opts)
         {
+            opts.FormatString = opts.FormatString.Trim('"');
+            opts.Alias = opts.Alias.Trim('"');
+            
+            if (!String.IsNullOrEmpty(opts.Description))
+                opts.Description = opts.Description.Trim('"');
+            
             DirectoryScheme scheme = new DirectoryScheme(format: opts.FormatString, alias: opts.Alias, desc: opts.Description);
 
             var res = SaveData.AddScheme(scheme);
@@ -133,7 +139,7 @@ namespace PhotoOrganizer
 
         static int RemoveSchemes(SchemeRemoveOptions opts)
         {
-            
+            opts.Alias = opts.Alias.Trim('"');
             var res = SaveData.RemoveScheme(opts.Alias);
 
             if (res.Successful)
@@ -160,6 +166,8 @@ namespace PhotoOrganizer
         #region exec
         static int ExecuteMove(ExecuteMoveOptions opts)
         {
+            opts.SourceIdentifier = opts.SourceIdentifier.Trim('"');
+            opts.TargetIdentifier = opts.TargetIdentifier.Trim('"');
             DirectoryRecord source = SaveData.GetDirectoryOrDefault(opts.SourceIdentifier);
             if (source == null)
             {

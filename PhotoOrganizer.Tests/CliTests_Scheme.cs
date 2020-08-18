@@ -7,6 +7,7 @@ using System.Text.Json.Serialization;
 using NUnit.Framework;
 
 using PhotoOrganizer.Core;
+using System.Linq;
 
 namespace PhotoOrganizer.Tests
 {
@@ -30,7 +31,7 @@ namespace PhotoOrganizer.Tests
 
             // Update SaveData
             SaveData.DataDirectory = testDataPath;
-            SaveData.LoadSchemesFromDisk();
+            SaveData.Schemes = SaveData.LoadSchemesFromDisk();
         }
 
         [TearDown]
@@ -52,31 +53,36 @@ namespace PhotoOrganizer.Tests
         [Description("Adds schemes and sees if they are correctly consumed")]
         public void Add_ConsumesArgs_Desc()
         {
-            string arg_new = @"scheme-add -f {YYYY}\{MM}\{II} -a year-month2    -d Nests";
+            const string format = "{YYYY}\\{MM}\\{II}", alias = "year-month2", description = "Nests";
+            string arg_new = $"scheme-add -f {format} -a {alias} -d {description}";
             string result = Runner.RunProgram(arg_new);
-            Assert.AreEqual(String.Empty, result);
+            Assert.AreEqual(String.Empty, result, "Adding a scheme triggered program output unexpectedly");
 
-            result = Runner.RunProgram("scheme-list");
-            Assert.That(result, Contains.Substring("nests"));
-            Assert.That(result, Contains.Substring("like no joke, this is way over the top"));            
+            var newScheme = SaveData.Schemes.FirstOrDefault(s => s.FormatString == format &&
+                s.Description == description && s.Name == alias);
+            Assert.That(newScheme, Is.Not.Null, "Couldn't find the scheme added in SaveData");
         }
 
         [Test]
         [Description("Adds a scheme with no description to see if they are correctly consumed")]
         public void Add_ConsumeArgs_NoDesc()
         {
-            const string arg_new_descless = @"scheme-add -f {E}\{MMMM} -a Senseless";
+            const string format = "{E}\\{MMMM}", alias = "Senseless";
+            string arg_new_descless = $"scheme-add -f {format} -a {alias}";
             string result = Runner.RunProgram(arg_new_descless);
-            Assert.AreEqual(String.Empty, result);
+            Assert.AreEqual(String.Empty, result, "Adding a scheme triggered program output unexpectedly");
 
-            result = Runner.RunProgram("scheme-list");
-            Assert.That(result, Contains.Substring("senseless"));
+            var newScheme = SaveData.Schemes.FirstOrDefault(s => s.FormatString == format && s.Name == alias);
+            Assert.That(newScheme, Is.Not.Null, "Couldn't find the scheme added in SaveData");
         }
 
         [Test]
         [Description("Verifies all the schemes on-disk are written to console")]
         public void List_DisplaysSchemes()
         {
+            DirectoryScheme d1 = new DirectoryScheme("{Y}\\{M}\\{II}", "year-month", "Nests images by month, by year");
+            DirectoryScheme d2 = new DirectoryScheme("{Y}\\{MMM}\\{D}\\{E}\\{II}", "Overly organized", "Like no joke, this is way over the top");
+
             string result = Runner.RunProgram("scheme-list");
             Assert.That(result, Contains.Substring("nests images by month, by year"));
             Assert.That(result, Contains.Substring("like no joke, this is way over the top"));

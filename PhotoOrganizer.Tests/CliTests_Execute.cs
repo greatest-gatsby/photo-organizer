@@ -27,7 +27,7 @@ namespace PhotoOrganizer.Tests
             sourceDir = Directory.CreateDirectory(sourceDir.FullName);
 
             DirectoryRecord d1 = new DirectoryRecord(DirectoryType.Target, targetDir.FullName, "local-art");
-            DirectoryRecord d2 = new DirectoryRecord(DirectoryType.Source, sourceDir.FullName);
+            DirectoryRecord d2 = new DirectoryRecord(DirectoryType.Source, sourceDir.FullName, "megasource");
             DirectoryRecord d3 = new DirectoryRecord(DirectoryType.Target, "E:\\Backup\\Images", "big-disk");
             var list = new DirectoryRecord[] { d1, d2, d3 };
 
@@ -98,7 +98,7 @@ namespace PhotoOrganizer.Tests
         [Description("Verifies that successful move operations return an empty string.")]
         public static void ExecMove_Success_ReturnsEmptyString()
         {
-            string result = Runner.RunProgram($"exec-move -s \"{sourceDir.FullName}\" -t local-art");
+            string result = Runner.RunProgram($"exec-move -s {sourceDir.FullName} -t local-art");
             Assert.That(result, Is.EqualTo(String.Empty));
         }
 
@@ -112,7 +112,8 @@ namespace PhotoOrganizer.Tests
                 images.Add(img.Name, img.Length);
             }
             
-            Runner.RunProgram($"exec-move -s \"{sourceDir.FullName}\" -t local-art");
+            string result = Runner.RunProgram($"exec-move -s \"{sourceDir.FullName}\" -t local-art");
+
             var sourceSet = sourceDir.GetFiles();
             Assert.That(sourceSet.Length, Is.Zero, $"Expected no images in sourceDir, got {sourceSet.Length}");
 
