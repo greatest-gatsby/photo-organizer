@@ -15,6 +15,8 @@ namespace PhotoOrganizer.Tests
     {
         static string testDataPath = String.Empty;
 
+        static DirectoryScheme[] TestSchemes;
+
         [SetUp]
         public static void WriteTestData()
         {
@@ -32,6 +34,7 @@ namespace PhotoOrganizer.Tests
             // Update SaveData
             SaveData.DataDirectory = testDataPath;
             SaveData.Schemes = SaveData.LoadSchemesFromDisk();
+            TestSchemes = list;
         }
 
         [TearDown]
@@ -80,10 +83,8 @@ namespace PhotoOrganizer.Tests
         [Description("Verifies all the schemes on-disk are written to console")]
         public void List_DisplaysSchemes()
         {
-            DirectoryScheme d1 = new DirectoryScheme("{Y}\\{M}\\{II}", "year-month", "Nests images by month, by year");
-            DirectoryScheme d2 = new DirectoryScheme("{Y}\\{MMM}\\{D}\\{E}\\{II}", "Overly organized", "Like no joke, this is way over the top");
-
             string result = Runner.RunProgram("scheme-list");
+
             Assert.That(result, Contains.Substring("nests images by month, by year"));
             Assert.That(result, Contains.Substring("like no joke, this is way over the top"));
             Assert.That(result.Contains("failed to parse"), Is.False);
